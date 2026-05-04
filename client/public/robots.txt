@@ -1,0 +1,70 @@
+# robots.txt for JS Visualizer
+# https://www.robotstxt.org/
+
+# ─── Default: welcome all well-behaved crawlers ─────────────────────────
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /*.json$
+
+# ─── Major search engines (explicit) ───────────────────────────────────
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# ─── Social media preview crawlers (must be allowed for OG cards) ─────
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# ─── AI scraper opt-out (uncomment to block training data harvesting) ─
+# User-agent: GPTBot
+# Disallow: /
+# User-agent: ChatGPT-User
+# Disallow: /
+# User-agent: CCBot
+# Disallow: /
+# User-agent: anthropic-ai
+# Disallow: /
+# User-agent: Google-Extended
+# Disallow: /
+# User-agent: PerplexityBot
+# Disallow: /
+
+# ─── Sitemap ───────────────────────────────────────────────────────────
+# REPLACE with your actual deployment URL
+Sitemap: https://jsvisualizer.app/sitemap.xml

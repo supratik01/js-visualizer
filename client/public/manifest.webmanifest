@@ -1,0 +1,54 @@
+{
+  "name": "JS Visualizer — Interactive JavaScript Runtime",
+  "short_name": "JS Visualizer",
+  "description": "Free interactive JavaScript visualizer. Step through code line-by-line and watch the call stack, event loop, microtask queue, and memory graph come to life.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#FAF9F6",
+  "theme_color": "#FAF9F6",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "developer", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "JS Visualizer in action — call stack, event loop, and memory graph"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open editor",
+      "short_name": "Editor",
+      "description": "Jump straight into the JavaScript editor",
+      "url": "/?action=editor",
+      "icons": [{ "src": "/favicon.png", "sizes": "256x256" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

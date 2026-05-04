@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <!-- ─── Charset & Viewport ──────────────────────────────────────── -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
+
+    <!-- ─── Primary Meta Tags ──────────────────────────────────────── -->
+    <title>JS Visualizer — JavaScript Event Loop, Call Stack & Memory Tutorial</title>
+    <meta name="title" content="JS Visualizer — JavaScript Event Loop, Call Stack & Memory Tutorial" />
+    <meta name="description" content="Free interactive JavaScript visualizer. Step through code line-by-line and watch the call stack, Web APIs, microtask queue, event loop, and memory graph come to life. Master async/await, Promises, closures, and the JS runtime." />
+    <meta name="keywords" content="JavaScript visualizer, JS event loop, JavaScript call stack, microtask queue, task queue, async await visualizer, Promise visualizer, JavaScript runtime, JS memory visualization, JavaScript tutorial, learn JavaScript, JS playground, JavaScript debugger online, JavaScript execution simulator, V8 visualizer, Node.js event loop, browser event loop, web APIs visualization, JavaScript closures, JavaScript classes, generators, interactive coding tutorial, JavaScript animation, see code understand memory" />
+    <meta name="author" content="JS Visualizer" />
+    <meta name="application-name" content="JS Visualizer" />
+    <meta name="generator" content="Vite + React + TypeScript" />
+    <meta name="rating" content="general" />
+    <meta name="distribution" content="global" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="language" content="English" />
+
+    <!-- ─── Robots / Search-Engine Directives ──────────────────────── -->
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow" />
+    <meta name="slurp" content="index, follow" />
+
+    <!-- ─── Canonical URL ───────────────────────────────────────────
+         REPLACE the placeholder domain below with your actual deployment
+         URL once you ship. All Open Graph / Twitter / JSON-LD URLs below
+         use the same placeholder — search & replace `https://jsvisualizer.app`
+         to update everything in one go.
+    ────────────────────────────────────────────────────────────────── -->
+    <link rel="canonical" href="https://jsvisualizer.app/" />
+
+    <!-- ─── Open Graph (Facebook, LinkedIn, Slack, Discord, etc.) ──── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://jsvisualizer.app/" />
+    <meta property="og:site_name" content="JS Visualizer" />
+    <meta property="og:title" content="JS Visualizer — See Code. Understand Memory." />
+    <meta property="og:description" content="Free interactive JavaScript visualizer. Step through code and watch the call stack, event loop, microtask queue, and memory graph come to life. Master async/await, Promises, closures, and the JS runtime." />
+    <meta property="og:image" content="https://jsvisualizer.app/og-image.png" />
+    <meta property="og:image:secure_url" content="https://jsvisualizer.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="JS Visualizer — interactive JavaScript event loop, call stack, and memory graph visualization" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- ─── Twitter / X Card ───────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://jsvisualizer.app/" />
+    <meta name="twitter:title" content="JS Visualizer — See Code. Understand Memory." />
+    <meta name="twitter:description" content="Free interactive JavaScript visualizer. Step through code and watch the call stack, event loop, microtask queue, and memory graph come to life." />
+    <meta name="twitter:image" content="https://jsvisualizer.app/og-image.png" />
+    <meta name="twitter:image:alt" content="JS Visualizer — interactive JavaScript runtime visualization" />
+
+    <!-- ─── Theme Color (browser chrome / address bar) ─────────────── -->
+    <meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <meta name="msapplication-TileColor" content="#FAF9F6" />
+    <meta name="msapplication-TileImage" content="/favicon.png" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- ─── Apple PWA / Touch Icons ────────────────────────────────── -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="JS Visualizer" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+    <link rel="mask-icon" href="/favicon.png" color="#DA7756" />
+
+    <!-- ─── Mobile / PWA ───────────────────────────────────────────── -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- ─── Favicons ──────────────────────────────────────────────── -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.png" />
+
+    <!-- ─── Web App Manifest (PWA install + Lighthouse) ────────────── -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ─── Performance Hints ──────────────────────────────────────── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
+    <!-- ─── Fonts ─────────────────────────────────────────────────── -->
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+
+    <!-- ─── Schema.org JSON-LD: WebApplication ─────────────────────────
+         Gives Google rich-snippet eligibility (price, ratings, features).
+    ────────────────────────────────────────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "JS Visualizer",
+      "alternateName": ["JavaScript Visualizer", "JS Event Loop Visualizer", "JavaScript Runtime Visualizer"],
+      "url": "https://jsvisualizer.app/",
+      "description": "Free interactive JavaScript visualizer that simulates the runtime, event loop, call stack, task queue, microtask queue, and memory graph — letting developers step through code line-by-line.",
+      "applicationCategory": "EducationalApplication",
+      "applicationSubCategory": "DeveloperTool",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires a modern browser with JavaScript enabled.",
+      "softwareVersion": "1.0.0",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "audience": {
+        "@type": "EducationalAudience",
+        "educationalRole": "student"
+      },
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "image": "https://jsvisualizer.app/og-image.png",
+      "screenshot": "https://jsvisualizer.app/og-image.png",
+      "featureList": [
+        "Step-by-step JavaScript execution with breakpoints",
+        "Live call stack visualization",
+        "Web APIs simulation (timers, fetch, etc.)",
+        "Task queue and macrotask tracking",
+        "Microtask queue (Promise.then, queueMicrotask)",
+        "Animated event loop phase indicator",
+        "Memory graph (force-directed) — heap, frames, closures, references",
+        "Built-in code examples covering classes, closures, generators, async/await, and more",
+        "Light and dark themes",
+        "No signup, runs entirely in the browser"
+      ]
+    }
+    </script>
+
+    <!-- ─── Schema.org JSON-LD: SoftwareApplication ────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "JS Visualizer",
+      "url": "https://jsvisualizer.app/",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "5",
+        "ratingCount": "1",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+    </script>
+
+    <!-- ─── Schema.org JSON-LD: Organization ───────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "JS Visualizer",
+      "url": "https://jsvisualizer.app/",
+      "logo": "https://jsvisualizer.app/logo.png",
+      "slogan": "See Code. Understand Memory."
+    }
+    </script>
+
+    <!-- ─── Schema.org JSON-LD: BreadcrumbList ─────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://jsvisualizer.app/"
+        }
+      ]
+    }
+    </script>
+
+    <!-- ─── Schema.org JSON-LD: FAQPage ────────────────────────────────
+         FAQ rich snippets are powerful — they multiply your SERP real
+         estate and click-through rate. Each Q&A becomes a collapsible
+         link directly in Google search results.
+    ────────────────────────────────────────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the JavaScript event loop?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The JavaScript event loop is the runtime mechanism that orchestrates execution between the call stack, Web APIs, microtask queue, and macrotask queue. It runs synchronous code, drains microtasks (Promise.then, queueMicrotask), then picks up one macrotask at a time. JS Visualizer animates this entire dance so you can see exactly what runs when."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does JS Visualizer help me learn async/await?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JS Visualizer steps through async functions and shows you when execution suspends, when the resulting Promise resolves, when the resume callback enters the microtask queue, and when the await expression continues. You see the difference between Promise.then chaining, queueMicrotask, and setTimeout in real time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the difference between microtasks and macrotasks in JavaScript?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Microtasks (Promise.then callbacks, queueMicrotask) run immediately after the current synchronous task finishes — the engine drains the entire microtask queue before any macrotask. Macrotasks (setTimeout, setInterval, I/O events) run one per event-loop tick. JS Visualizer separates the two queues visually so the ordering is unmistakable."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is JS Visualizer free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — JS Visualizer is completely free, runs entirely in your browser, and requires no signup. There is no paid tier."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to install anything?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. JS Visualizer runs entirely in your browser — no installation, account, or backend required. Just open the page and start stepping through code."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I visualize my own JavaScript code?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Paste any JavaScript snippet into the Monaco editor and click RUN. The visualizer steps through it, animating the call stack, queues, and memory graph as your code executes."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ─── Optional: prerender a brief above-the-fold hint for crawlers
+         Some crawlers fetch only the HTML response. The <noscript>
+         block below carries our value proposition + features so the
+         page is meaningful even without JavaScript execution.
+    ────────────────────────────────────────────────────────────────── -->
+  </head>
+
+  <body>
+    <noscript>
+      <div style="padding:2rem; font-family:Inter,system-ui,sans-serif; max-width:760px; margin:0 auto; line-height:1.6; color:#1A1612; background:#FAF9F6;">
+        <h1 style="font-size:2rem; margin:0 0 .5rem; letter-spacing:0.02em;">JS Visualizer — JavaScript Event Loop &amp; Runtime Tutorial</h1>
+        <p style="font-size:1.1rem; color:#57534e; margin:0 0 1.5rem;">See Code. Understand Memory.</p>
+
+        <p>JS Visualizer is a <strong>free interactive JavaScript visualizer</strong> that simulates the JavaScript runtime in real time. Step through code line-by-line and watch the <strong>call stack</strong>, <strong>Web APIs</strong>, <strong>task queue</strong>, <strong>microtask queue</strong>, <strong>event loop</strong>, and a force-directed <strong>memory graph</strong> animate as your code executes.</p>
+
+        <p>Built for developers learning <em>async/await, Promises, closures, generators, classes,</em> and the event loop, JS Visualizer turns abstract runtime behavior into something you can watch and reason about.</p>
+
+        <h2 style="margin-top:2rem;">Features</h2>
+        <ul>
+          <li>Step-by-step JavaScript execution with breakpoints</li>
+          <li>Live call stack and frame visualization</li>
+          <li>Web APIs panel (timers, fetch, etc.) with progress tracking</li>
+          <li>Task queue and microtask queue with proper draining order</li>
+          <li>Animated event loop phase indicator</li>
+          <li>Memory graph showing heap objects, closures, and references</li>
+          <li>Twenty-plus built-in examples covering JS fundamentals through advanced patterns</li>
+          <li>Light and dark themes</li>
+        </ul>
+
+        <h2 style="margin-top:2rem;">Topics Covered</h2>
+        <p>Synchronous execution, call stack, Promises, microtasks, timers, event loop, async/await, advanced patterns, error handling, Web APIs, hoisting &amp; TDZ, scope &amp; closures, this binding, type coercion, Map &amp; Set, classes, operators, destructuring, built-ins, generators, inheritance, metaprogramming, binary data.</p>
+
+        <p style="margin-top:2rem; padding:1rem; background:#F5F0E8; border-radius:.5rem; border-left:4px solid #DA7756;">
+          <strong>This app requires JavaScript.</strong> Please enable JavaScript in your browser to use the interactive visualizer.
+        </p>
+      </div>
+    </noscript>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

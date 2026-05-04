@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# macOS
+.DS_Store
+
+# Replit / legacy artefacts
+server/public
+vite.config.ts.*
+*.tar.gz
+replit.md
+
+# Claude Code session files
+.claude/
+
+# Temp / generated output
+tmp/
+output/
+
+# Environment
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,946 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* LIGHT MODE — Claude warm cream palette */
+:root {
+  --button-outline: rgba(26, 22, 18, .10);
+  --badge-outline: rgba(26, 22, 18, .06);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(26, 22, 18, .03);
+  --elevate-2: rgba(26, 22, 18, .07);
+  /* Warm cream base — #FAF9F6 */
+  --background: 44 27% 97%;
+  /* Warm near-black text — #1A1612 */
+  --foreground: 30 18% 9%;
+  /* Warm gray border — #E8E0D5 */
+  --border: 35 29% 87%;
+  /* Cards — slightly deeper warm cream #F5F0E8 */
+  --card: 37 39% 94%;
+  --card-foreground: 30 18% 9%;
+  --card-border: 35 25% 90%;
+  /* Sidebar — warm parchment #F0EBE3 */
+  --sidebar: 37 30% 92%;
+  --sidebar-foreground: 30 18% 9%;
+  --sidebar-border: 35 22% 88%;
+  /* Primary — terra cotta #DA7756 */
+  --sidebar-primary: 15 64% 60%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 35 22% 88%;
+  --sidebar-accent-foreground: 30 18% 9%;
+  --sidebar-ring: 15 64% 60%;
+  /* Popover — warm off-white */
+  --popover: 40 33% 95%;
+  --popover-foreground: 30 18% 9%;
+  --popover-border: 35 25% 90%;
+  /* Primary — terra cotta #DA7756 */
+  --primary: 15 64% 60%;
+  --primary-foreground: 0 0% 98%;
+  /* Secondary — warm sand */
+  --secondary: 33 25% 88%;
+  --secondary-foreground: 30 18% 9%;
+  /* Muted */
+  --muted: 35 20% 91%;
+  --muted-foreground: 33 14% 44%;
+  /* Accent — warm parchment */
+  --accent: 37 28% 92%;
+  --accent-foreground: 30 18% 9%;
+  --destructive: 0 72% 44%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 35 18% 78%;
+  /* Ring — terra cotta */
+  --ring: 15 64% 60%;
+  /* Chart — warm variants */
+  --chart-1: 15 64% 52%;
+  --chart-2: 271 60% 48%;
+  --chart-3: 160 50% 38%;
+  --chart-4: 43 90% 48%;
+  --chart-5: 200 65% 45%;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: .5rem;
+  /* App-specific panel backgrounds (light mode) — warm cream panels */
+  --app-panel: 44 32% 99%;            /* near-white cream — clean canvas */
+  --app-panel-deep: 38 30% 95%;       /* slightly cooler cream — quiet depth */
+  --app-panel-item: 37 28% 96%;       /* hover/inset cream */
+  --app-bar: 44 27% 98%;
+  /* Panel label badge gradients — refined Claude tones (saturated enough for white text) */
+  --panel-callstack-gradient: linear-gradient(135deg, #DA7756 0%, #b8633e 100%);     /* Claude terra cotta */
+  --panel-webapis-gradient:   linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);     /* refined violet  */
+  --panel-taskqueue-gradient: linear-gradient(135deg, #dc2626 0%, #9f1239 100%);     /* refined rose    */
+  --panel-microtask-gradient: linear-gradient(135deg, #0d9488 0%, #115e59 100%);     /* refined teal    */
+  --panel-eventloop-gradient: linear-gradient(135deg, #be185d 0%, #831843 100%);     /* refined magenta */
+  --panel-console-gradient:   linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);     /* refined indigo  */
+  /* Subtle warm panel frame (replaces colored 2px gradient borders in light mode) */
+  --panel-frame-bg:    linear-gradient(135deg, hsl(35 22% 89%) 0%, hsl(35 18% 85%) 100%);
+  --panel-frame-shadow:
+    0 1px 2px rgba(26, 22, 18, 0.04),
+    0 4px 12px rgba(26, 22, 18, 0.05),
+    0 12px 32px rgba(26, 22, 18, 0.03);
+  /* Warm depth shadows for light mode */
+  --shadow-2xs: 0 1px 2px rgba(26, 22, 18, 0.04);
+  --shadow-xs: 0 1px 3px rgba(26, 22, 18, 0.06);
+  --shadow-sm: 0 1px 2px rgba(26, 22, 18, 0.04), 0 2px 6px rgba(26, 22, 18, 0.06);
+  --shadow: 0 1px 3px rgba(26, 22, 18, 0.08), 0 2px 8px rgba(26, 22, 18, 0.06);
+  --shadow-md: 0 4px 6px rgba(26, 22, 18, 0.06), 0 2px 4px rgba(26, 22, 18, 0.04);
+  --shadow-lg: 0 10px 15px rgba(26, 22, 18, 0.08), 0 4px 6px rgba(26, 22, 18, 0.04);
+  --shadow-xl: 0 20px 25px rgba(26, 22, 18, 0.10), 0 8px 10px rgba(26, 22, 18, 0.04);
+  --shadow-2xl: 0 25px 50px rgba(26, 22, 18, 0.12);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dark {
+  --button-outline: rgba(255, 255, 255, .10);
+  --badge-outline: rgba(255, 255, 255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255, 255, 255, .04);
+  --elevate-2: rgba(255, 255, 255, .09);
+  --background: 220 6% 8%;
+  --foreground: 220 8% 95%;
+  --border: 220 6% 18%;
+  --card: 220 5% 10%;
+  --card-foreground: 220 8% 95%;
+  --card-border: 220 6% 13%;
+  --sidebar: 220 5% 12%;
+  --sidebar-foreground: 220 8% 95%;
+  --sidebar-border: 220 6% 15%;
+  --sidebar-primary: 217 91% 52%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 220 8% 16%;
+  --sidebar-accent-foreground: 220 8% 95%;
+  --sidebar-ring: 217 91% 52%;
+  --popover: 220 6% 14%;
+  --popover-foreground: 220 8% 95%;
+  --popover-border: 220 6% 17%;
+  --primary: 217 91% 48%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 220 8% 18%;
+  --secondary-foreground: 220 8% 95%;
+  --muted: 220 8% 16%;
+  --muted-foreground: 220 6% 65%;
+  --accent: 220 10% 15%;
+  --accent-foreground: 220 8% 95%;
+  --destructive: 0 72% 42%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 220 8% 35%;
+  --ring: 217 91% 52%;
+  /* App-specific panel backgrounds (dark mode) */
+  --app-panel: 228 13% 14%;
+  --app-panel-deep: 240 14% 7%;
+  --app-panel-item: 228 13% 19%;
+  --app-bar: 240 20% 5%;
+  /* Panel accent gradients (dark mode — vivid neon glow) */
+  --panel-callstack-gradient: linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #ea580c 100%);
+  --panel-webapis-gradient: linear-gradient(135deg, #d946ef 0%, #ec4899 50%, #f43f5e 100%);
+  --panel-taskqueue-gradient: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  --panel-microtask-gradient: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%);
+  --panel-eventloop-gradient: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  --panel-console-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --chart-1: 217 91% 62%;
+  --chart-2: 271 81% 68%;
+  --chart-3: 173 58% 59%;
+  --chart-4: 43 96% 68%;
+  --chart-5: 27 87% 62%;
+  --shadow-2xs: 0px 2px 0px 0px hsl(220 6% 10% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(220 6% 10% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(220 6% 10% / 0.00), 0px 1px 2px -1px hsl(220 6% 10% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(220 6% 10% / 0.00), 0px 1px 2px -1px hsl(220 6% 10% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(220 6% 10% / 0.00), 0px 2px 4px -1px hsl(220 6% 10% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(220 6% 10% / 0.00), 0px 4px 6px -1px hsl(220 6% 10% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(220 6% 10% / 0.00), 0px 8px 10px -1px hsl(220 6% 10% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(220 6% 10% / 0.00);
+
+  /* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/**
+ * Using the elevate system.
+ * Automatic contrast adjustment.
+ *
+ * <element className="hover-elevate" />
+ * <element className="active-elevate-2" />
+ *
+ * // Using the tailwind utility when a data attribute is "on"
+ * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
+ * // Or manually controlling the toggle state
+ * <element className="toggle-elevate toggle-elevated" />
+ *
+ * Elevation systems have to handle many states.
+ * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
+ * - toggled or not
+ * - focused or not (this is not handled with these utilities)
+ *
+ * Even without handling focused or not, this is six possible combinations that
+ * need to be distinguished from eachother visually.
+ */
+@layer utilities {
+
+  /* Hide ugly search cancel button in Chrome until we can style it properly */
+  input[type="search"]::-webkit-search-cancel-button {
+    @apply hidden;
+  }
+
+  /* Placeholder styling for contentEditable div */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
+   * buttons/badges can remove the automatic brightness adjustment on interactions
+   * and program their own. */
+  .no-default-hover-elevate {}
+
+  .no-default-active-elevate {}
+
+
+  /**
+   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
+   * This way they can stack/compound. Both will overlap the parent's borders!
+   * So borders will be automatically adjusted both on toggle, and hover/active,
+   * and they will be compounded.
+   */
+  .toggle-elevate::before,
+  .toggle-elevate-2::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: -1;
+    /* sits behind content but above backdrop */
+  }
+
+  .toggle-elevate.toggle-elevated::before {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.toggle-elevate::before {
+    inset: -1px;
+  }
+
+  /* Does not work on elements with overflow:hidden! */
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate:not(.no-default-active-elevate),
+  .hover-elevate-2:not(.no-default-hover-elevate),
+  .active-elevate-2:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate:not(.no-default-active-elevate)::after,
+  .hover-elevate-2:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:not(.no-default-active-elevate)::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: 999;
+    /* sits in front of content */
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+    inset: -1px;
+  }
+}
+
+/* Nice-to-Have: Mobile Responsive Enhancements */
+@media (max-width: 640px) {
+
+  /* Smaller control bar on mobile */
+  .control-bar-mobile {
+    @apply py-2 px-2 gap-2;
+  }
+
+  /* Touch-friendly buttons */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Compact panels on mobile */
+  .panel-compact {
+    @apply p-2;
+  }
+
+  /* Hide less important elements on mobile */
+  .hide-mobile {
+    @apply hidden;
+  }
+
+  /* Stack horizontally scrollable on mobile */
+  .scroll-x-mobile {
+    @apply overflow-x-auto whitespace-nowrap;
+  }
+}
+
+/* Nice-to-Have: Theme Transition */
+.theme-transition {
+  @apply transition-colors duration-300;
+}
+
+/* ── Light mode overrides ────────────────────────────────────────────────────
+ * next-themes sets class="dark" on <html> for dark mode.
+ * :root:not(.dark) === light mode.
+ */
+
+/* Zinc text → warm brown readable shades (Claude palette) */
+:root:not(.dark) .text-white {
+  color: hsl(30 18% 9%)
+}
+
+:root:not(.dark) .text-zinc-100 {
+  color: hsl(30 15% 14%)
+}
+
+:root:not(.dark) .text-zinc-200 {
+  color: hsl(30 12% 22%)
+}
+
+:root:not(.dark) .text-zinc-300 {
+  color: hsl(30 10% 30%)
+}
+
+:root:not(.dark) .text-zinc-400 {
+  color: hsl(30 8% 40%)
+}
+
+:root:not(.dark) .text-zinc-500 {
+  color: hsl(30 6% 50%)
+}
+
+:root:not(.dark) .text-zinc-600 {
+  color: hsl(30 5% 44%)
+}
+
+:root:not(.dark) .text-zinc-700 {
+  color: hsl(30 5% 37%)
+}
+
+/* Semantic badge text — too light on white; shift to darker variants */
+:root:not(.dark) .text-blue-400 {
+  color: #1d4ed8
+}
+
+/* blue-700   */
+:root:not(.dark) .text-amber-400 {
+  color: #b45309
+}
+
+/* amber-700  */
+:root:not(.dark) .text-yellow-400 {
+  color: #a16207
+}
+
+/* yellow-700 */
+:root:not(.dark) .text-orange-400 {
+  color: #c2410c
+}
+
+/* orange-700 */
+:root:not(.dark) .text-purple-400 {
+  color: #6d28d9
+}
+
+/* violet-700 */
+:root:not(.dark) .text-violet-400 {
+  color: #6d28d9
+}
+
+/* violet-700 */
+:root:not(.dark) .text-green-400 {
+  color: #15803d
+}
+
+/* green-700  */
+:root:not(.dark) .text-emerald-400 {
+  color: #047857
+}
+
+/* emerald-700*/
+:root:not(.dark) .text-teal-400 {
+  color: #0f766e
+}
+
+/* teal-700   */
+:root:not(.dark) .text-cyan-400 {
+  color: #0e7490
+}
+
+/* cyan-700   */
+:root:not(.dark) .text-pink-400 {
+  color: #be185d
+}
+
+/* pink-700   */
+:root:not(.dark) .text-rose-400 {
+  color: #be123c
+}
+
+/* rose-700   */
+:root:not(.dark) .text-red-400 {
+  color: #b91c1c
+}
+
+/* red-700    */
+
+/* Semantic badge backgrounds — slightly more opaque so tints show on white */
+:root:not(.dark) .bg-blue-500\/20 {
+  background-color: #eff6ff
+}
+
+:root:not(.dark) .bg-amber-500\/20 {
+  background-color: #fffbeb
+}
+
+:root:not(.dark) .bg-yellow-500\/20 {
+  background-color: #fefce8
+}
+
+:root:not(.dark) .bg-orange-500\/20 {
+  background-color: #fff7ed
+}
+
+:root:not(.dark) .bg-purple-500\/20 {
+  background-color: #f5f3ff
+}
+
+:root:not(.dark) .bg-green-500\/20 {
+  background-color: #f0fdf4
+}
+
+:root:not(.dark) .bg-emerald-500\/20 {
+  background-color: #ecfdf5
+}
+
+:root:not(.dark) .bg-teal-500\/20 {
+  background-color: #f0fdfa
+}
+
+:root:not(.dark) .bg-cyan-500\/20 {
+  background-color: #ecfeff
+}
+
+:root:not(.dark) .bg-pink-500\/20 {
+  background-color: #fdf2f8
+}
+
+:root:not(.dark) .bg-rose-500\/20 {
+  background-color: #fff1f2
+}
+
+:root:not(.dark) .bg-red-500\/20 {
+  background-color: #fef2f2
+}
+
+/* Semantic badge borders */
+:root:not(.dark) .border-blue-500\/30 {
+  border-color: #bfdbfe
+}
+
+:root:not(.dark) .border-amber-500\/30 {
+  border-color: #fde68a
+}
+
+:root:not(.dark) .border-yellow-500\/30 {
+  border-color: #fef08a
+}
+
+:root:not(.dark) .border-orange-500\/50 {
+  border-color: #fdba74
+}
+
+:root:not(.dark) .border-purple-500\/30 {
+  border-color: #ddd6fe
+}
+
+:root:not(.dark) .border-green-500\/20 {
+  border-color: #bbf7d0
+}
+
+:root:not(.dark) .border-emerald-500\/30 {
+  border-color: #a7f3d0
+}
+
+:root:not(.dark) .border-teal-500\/20 {
+  border-color: #99f6e4
+}
+
+:root:not(.dark) .border-cyan-500\/30 {
+  border-color: #a5f3fc
+}
+
+:root:not(.dark) .border-pink-500\/30 {
+  border-color: #fbcfe8
+}
+
+:root:not(.dark) .border-rose-400 {
+  border-color: #fda4af
+}
+
+/* Active/top-of-stack ring — make subtle in light mode */
+:root:not(.dark) .ring-1.ring-orange-500\/30 {
+  --tw-ring-color: #fcd34d80
+}
+
+/* Zinc borders → warm cream variants (Claude palette) */
+:root:not(.dark) .border-zinc-600 {
+  border-color: hsl(35 18% 78%)
+}
+
+:root:not(.dark) .border-zinc-700 {
+  border-color: hsl(35 16% 83%)
+}
+
+:root:not(.dark) .border-zinc-800 {
+  border-color: hsl(35 14% 87%)
+}
+
+/* bg-zinc utility overrides → warm cream tones */
+:root:not(.dark) .bg-zinc-700 {
+  background-color: hsl(37 22% 88%)
+}
+
+:root:not(.dark) .bg-zinc-700\/50 {
+  background-color: hsl(37 22% 88% / 0.6)
+}
+
+:root:not(.dark) .bg-zinc-800 {
+  background-color: hsl(37 28% 92%)
+}
+
+:root:not(.dark) .bg-zinc-900 {
+  background-color: hsl(44 30% 96%)
+}
+
+/* Opacity-variant button backgrounds used in ControlBar */
+:root:not(.dark) .bg-zinc-900\/80 {
+  background-color: hsl(44 27% 98% / 0.97)
+}
+
+:root:not(.dark) .bg-zinc-800\/70 {
+  background-color: hsl(37 28% 94% / 0.95)
+}
+
+:root:not(.dark) .bg-zinc-800\/60 {
+  background-color: hsl(37 28% 93% / 0.85)
+}
+
+:root:not(.dark) .bg-zinc-800\/40 {
+  background-color: hsl(37 28% 93% / 0.65)
+}
+
+:root:not(.dark) .hover\:bg-zinc-800:hover {
+  background-color: hsl(37 25% 89%)
+}
+
+:root:not(.dark) .hover\:text-white:hover {
+  color: hsl(30 18% 9%)
+}
+
+/* bg-black → warm cream background */
+:root:not(.dark) .bg-black {
+  background-color: hsl(var(--background))
+}
+
+/* bg-zinc-600 used for the EventLoop connector line */
+:root:not(.dark) .bg-zinc-600 {
+  background-color: hsl(35 18% 82%)
+}
+
+/* Dashed empty-state borders — warm and visible on cream */
+:root:not(.dark) .border-dashed.border-zinc-700 {
+  border-color: hsl(35 18% 76%);
+}
+
+/* ControlBar app bar — warm cream bottom border */
+:root:not(.dark) [class*="border-b"] {
+  border-bottom-color: hsl(35 22% 88%);
+}
+
+/* ControlBar border override for the specific zinc-800/80 class */
+:root:not(.dark) .border-zinc-800\/80 {
+  border-color: hsl(35 15% 86%)
+}
+
+:root:not(.dark) .text-zinc-300 {
+  color: hsl(30 10% 30%)
+}
+
+/* Dropdown menus — warm cream background in light mode */
+:root:not(.dark) .bg-zinc-900 {
+  background-color: hsl(44 30% 97%)
+}
+
+/* Subtle separator line between toolbar sections */
+:root:not(.dark) .border-zinc-700 {
+  border-color: hsl(35 16% 84%)
+}
+
+/* ── Light-mode Panel Frame Override ───────────────────────────────────────
+ * In dark mode, every visualization panel uses a saturated 2px gradient
+ * border (orange/purple/teal/rose/indigo). On the cream Claude theme that
+ * looks loud and noisy. Replace it with a subtle warm-gray frame + soft
+ * drop shadow. Inline styles need !important to be overridden. The colored
+ * label badges (.panel-label) sit on top of this and keep their identity.
+ */
+:root:not(.dark) .rounded-lg.p-\[2px\] {
+  background: var(--panel-frame-bg) !important;
+  box-shadow: var(--panel-frame-shadow);
+  border-radius: 0.625rem;
+}
+
+/* The inner panel surface — pure cream, no tint */
+:root:not(.dark) .rounded-lg.p-\[2px\] > .h-full {
+  background: hsl(44 32% 99%) !important;
+}
+
+/* Panel label badges keep colored gradient and white text */
+:root:not(.dark) .panel-label,
+:root:not(.dark) .panel-label * {
+  color: #ffffff !important;
+}
+:root:not(.dark) .panel-label {
+  box-shadow:
+    0 2px 4px rgba(26, 22, 18, 0.10),
+    0 4px 12px rgba(26, 22, 18, 0.08);
+  letter-spacing: 0.01em;
+}
+
+/* ── Missing zinc utility overrides (opacity variants used in panels) ──── */
+:root:not(.dark) .bg-zinc-900\/30 {
+  background-color: hsl(38 30% 96% / 0.6);
+}
+:root:not(.dark) .bg-zinc-900\/50 {
+  background-color: hsl(44 27% 97% / 0.65);
+}
+:root:not(.dark) .bg-zinc-800\/50 {
+  background-color: hsl(37 28% 92% / 0.7);
+}
+:root:not(.dark) .bg-zinc-800\/30 {
+  background-color: hsl(37 28% 94% / 0.55);
+}
+:root:not(.dark) .bg-zinc-700\/30 {
+  background-color: hsl(35 18% 90% / 0.65);
+}
+:root:not(.dark) .bg-zinc-700\/50 {
+  background-color: hsl(35 18% 88% / 0.75);
+}
+:root:not(.dark) .bg-zinc-600\/50 {
+  background-color: hsl(35 14% 86% / 0.7);
+}
+
+:root:not(.dark) .border-zinc-800\/60,
+:root:not(.dark) .border-zinc-800\/40 {
+  border-color: hsl(35 18% 86%);
+}
+:root:not(.dark) .border-zinc-700\/50 {
+  border-color: hsl(35 18% 84%);
+}
+:root:not(.dark) .border-zinc-600\/50 {
+  border-color: hsl(35 16% 80%);
+}
+
+/* Active phase ring in EventLoop (cyan-500/70 in dark) — softer warm in light */
+:root:not(.dark) .border-cyan-500\/70 {
+  border-color: #0d9488;
+}
+
+/* Section header text on dark gradient backgrounds reads white — verify */
+:root:not(.dark) .text-zinc-600 {
+  color: hsl(30 6% 45%);
+}
+:root:not(.dark) .text-zinc-500 {
+  color: hsl(30 8% 48%);
+}
+
+/* Custom scrollbars in light mode — warm accent */
+:root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(35 18% 78%);
+}
+:root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(15 50% 55%);
+}
+
+/* Empty-state icon strokes — warm gray instead of cool gray */
+:root:not(.dark) .opacity-30 {
+  opacity: 0.55;
+}
+
+/* Slider track on toolbar */
+:root:not(.dark) [class*="bg-secondary"] {
+  background-color: hsl(35 22% 88%);
+}
+
+/* Toolbar separator pipe */
+:root:not(.dark) .bg-zinc-700.h-6 {
+  background-color: hsl(35 18% 84%);
+}
+
+/* Nice-to-Have: Sound feedback visual indicator */
+@keyframes sound-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.sound-active {
+  animation: sound-pulse 0.2s ease-in-out;
+}
+
+/* Nice-to-Have: Tutorial spotlight animation */
+@keyframes spotlight-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px hsl(var(--primary)), 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px hsl(var(--primary)), 0 0 30px hsl(var(--primary) / 0.5);
+  }
+}
+
+.tutorial-highlight {
+  animation: spotlight-pulse 2s ease-in-out infinite;
+}
+
+/* Nice-to-Have: Fullscreen mode */
+:fullscreen {
+  background: hsl(var(--background));
+}
+
+/* Nice-to-Have: Custom scrollbar for panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Nice-to-Have: Font family classes */
+.font-jetbrains {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.font-fira {
+  font-family: 'Fira Code', monospace;
+}
+
+.font-monaco {
+  font-family: Monaco, monospace;
+}
+
+.font-consolas {
+  font-family: Consolas, monospace;
+}
+
+/* Nice-to-Have: Zoom container */
+.zoom-container {
+  transform-origin: top left;
+  transition: transform 0.2s ease-out;
+}
+
+/* ── Accessibility ────────────────────────────────────────────────────────
+ * WCAG 2.1 AA compliance helpers.
+ */
+
+/* Screen-reader-only utility (Tailwind already provides .sr-only but we
+ * spell it out here for any non-Tailwind paths). */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Stronger, theme-aware focus ring on every keyboard-focused interactive
+ * element. Uses :focus-visible so mouse users don't see it. */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="checkbox"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.18);
+}
+
+/* Light mode: terra cotta focus ring (Claude accent) */
+:root:not(.dark) *:focus-visible {
+  outline-color: #DA7756;
+}
+:root:not(.dark) button:focus-visible,
+:root:not(.dark) a:focus-visible,
+:root:not(.dark) [role="button"]:focus-visible,
+:root:not(.dark) [role="menuitem"]:focus-visible {
+  box-shadow: 0 0 0 4px rgba(218, 119, 86, 0.18);
+}
+
+/* Reduced-motion preference — respect user's OS-level setting.
+ * Disables animations, transitions, and rotation effects. Critical for
+ * users with vestibular disorders or motion sensitivity. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Stop the rotating event-loop ring */
+  [data-rotating],
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+}
+
+/* High-contrast preference — improve borders & text contrast when the user
+ * has Windows / macOS high-contrast mode enabled. */
+@media (prefers-contrast: more) {
+  :root:not(.dark) {
+    --border: 30 14% 65%;
+    --muted-foreground: 30 14% 28%;
+  }
+  .dark {
+    --border: 220 6% 35%;
+    --muted-foreground: 220 6% 78%;
+  }
+  *:focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* Touch-target minimum size (WCAG 2.5.5) — ensure clickable elements are
+ * at least 24×24 CSS pixels (AA). Specific small icon-buttons in the
+ * memory graph zoom controls are explicitly opted out via .a11y-compact. */
+button:not(.a11y-compact) {
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* Ensure links are clearly identifiable */
+a:not([class*="bg-"]):not(.no-underline) {
+  text-underline-offset: 2px;
+}
