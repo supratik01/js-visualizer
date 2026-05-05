@@ -24,3 +24,6 @@ output/
 .env
 .env.local
 .env.*.local
+
+# Reference assets used during development (not part of the app)
+attached_assets/
