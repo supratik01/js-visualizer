@@ -3,7 +3,6 @@
   sitemap.xml for JS Visualizer
   https://www.sitemaps.org/protocol.html
 
-  REPLACE the placeholder domain `https://jsvisualizer.app/` below with your
   actual deployment URL. Submit this sitemap to Google Search Console and
   Bing Webmaster Tools after deployment.
 -->
@@ -12,19 +11,19 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <url>
-    <loc>https://jsvisualizer.app/</loc>
+    <loc>https://jsvisualizer.bytefront.dev/</loc>
     <lastmod>2026-05-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://jsvisualizer.app/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsvisualizer.app/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsvisualizer.bytefront.dev/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsvisualizer.bytefront.dev/" />
     <image:image>
-      <image:loc>https://jsvisualizer.app/og-image.png</image:loc>
+      <image:loc>https://jsvisualizer.bytefront.dev/og-image.png</image:loc>
       <image:title>JS Visualizer — See Code. Understand Memory.</image:title>
       <image:caption>Interactive JavaScript event loop, call stack, microtask queue, and memory graph visualization</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://jsvisualizer.app/logo.png</image:loc>
+      <image:loc>https://jsvisualizer.bytefront.dev/logo.png</image:loc>
       <image:title>JS Visualizer Logo</image:title>
     </image:image>
   </url>

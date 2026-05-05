@@ -67,4 +67,4 @@ Allow: /
 
 # ─── Sitemap ───────────────────────────────────────────────────────────
 # REPLACE with your actual deployment URL
-Sitemap: https://jsvisualizer.app/sitemap.xml
+Sitemap: https://jsvisualizer.bytefront.dev/sitemap.xml
