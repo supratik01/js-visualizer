@@ -2,7 +2,7 @@
 
 An interactive JavaScript execution visualizer that lets you watch code flow through the runtime — step by step.
 
-**Live demo:** https://jsvisualizer.bytefront.dev/
+**Live demo:** https://www.jsvisualizer.bytefront.dev/
 
 ## What it does
 

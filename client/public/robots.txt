@@ -66,4 +66,4 @@ Allow: /
 # Disallow: /
 
 # ─── Sitemap ───────────────────────────────────────────────────────────
-Sitemap: https://jsvisualizer.bytefront.dev/sitemap.xml
+Sitemap: https://www.jsvisualizer.bytefront.dev/sitemap.xml
