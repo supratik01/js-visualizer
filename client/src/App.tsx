@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { Visualizer } from "@/pages/Visualizer";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Toaster />
           <Router />
           <Analytics />
+          <SpeedInsights />
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
