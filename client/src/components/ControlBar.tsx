@@ -4,6 +4,7 @@ import {
   Download, Upload, Share2, Eye, Activity, Settings,
   GitCompare,
   MemoryStick,
+  Lightbulb,
   Sun, Moon
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -48,6 +49,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
     comparisonMode, setComparisonMode,
     exportState, importState, generateShareableLink,
     showMemoryPanel, toggleMemoryPanel,
+    showExplanationPanel, toggleExplanationPanel,
     customExamples, customCategoryLabels,
   } = useRuntimeStore();
 
@@ -292,6 +294,14 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               >
                 <GitCompare className="w-4 h-4 mr-2" />
                 Comparison Mode
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showExplanationPanel}
+                onCheckedChange={toggleExplanationPanel}
+                className="hover:bg-zinc-800 cursor-pointer"
+              >
+                <Lightbulb className="w-4 h-4 mr-2" />
+                Step Explanations
               </DropdownMenuCheckboxItem>
               {/* Memory Visualization toggle hidden for now — re-enable by uncommenting
               <DropdownMenuCheckboxItem

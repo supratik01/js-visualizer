@@ -49,6 +49,7 @@ export function Visualizer() {
     comparisonCode,
     setComparisonSteps,
     showMemoryPanel,
+    showExplanationPanel,
     setCode,
     importState,
   } = useRuntimeStore();
@@ -354,9 +355,11 @@ export function Visualizer() {
               <div className="h-[120px] sm:h-[140px] lg:h-[150px]">
                 <Console />
               </div>
-              <div className="h-[120px] sm:h-[140px] lg:h-[150px]">
-                <ExplanationPanel />
-              </div>
+              {showExplanationPanel && (
+                <div className="h-[120px] sm:h-[140px] lg:h-[150px]">
+                  <ExplanationPanel />
+                </div>
+              )}
             </div>
 
             <div className={`flex-1 flex flex-col gap-3 sm:gap-4 min-w-0 ${hasRightPanels ? 'lg:w-[40%]' : ''}`}>

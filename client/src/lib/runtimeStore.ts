@@ -173,6 +173,7 @@ export interface RuntimeState {
   currentMemorySnapshot: MemorySnapshot | null;
   heapAllocations: MemoryAllocation[];
   showMemoryPanel: boolean;
+  showExplanationPanel: boolean;
   
   setCode: (code: string) => void;
   setSpeed: (speed: number) => void;
@@ -207,6 +208,7 @@ export interface RuntimeState {
   clearTimeline: () => void;
 
   togglePerformancePanel: () => void;
+  toggleExplanationPanel: () => void;
   
   setComparisonMode: (enabled: boolean) => void;
   setComparisonCode: (code: string) => void;
@@ -343,6 +345,7 @@ console.log(5);`,
   currentMemorySnapshot: null,
   heapAllocations: [],
   showMemoryPanel: false,
+  showExplanationPanel: false,
   currentMemorySnapshotData: null,
   currentExplanation: null,
 
@@ -586,7 +589,11 @@ console.log(5);`,
     heapAllocations: [] 
   }),
   
-  toggleMemoryPanel: () => set((state) => ({ 
+  toggleExplanationPanel: () => set((state) => ({
+    showExplanationPanel: !state.showExplanationPanel
+  })),
+
+  toggleMemoryPanel: () => set((state) => ({
     showMemoryPanel: !state.showMemoryPanel 
   })),
   
