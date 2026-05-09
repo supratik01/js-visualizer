@@ -47,7 +47,7 @@ const panels = [
     label: 'Explanation',
     color: 'text-violet-400',
     bg: 'bg-violet-500/10 border-violet-500/20',
-    desc: 'Step-by-step explanations tied to the ECMAScript spec.',
+    desc: 'Spec-linked step explanations. Enable via View → Step Explanations.',
   },
 ];
 
