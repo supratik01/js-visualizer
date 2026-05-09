@@ -35,7 +35,7 @@ export function MicrotaskQueue() {
   };
 
   return (
-    <div className="relative h-full">
+    <div data-tour="microtask-queue" className="relative h-full">
       <div 
         className="h-full rounded-lg p-[2px]"
         style={{ background: 'var(--panel-microtask-gradient)' }}

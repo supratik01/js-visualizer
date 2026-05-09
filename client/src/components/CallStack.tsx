@@ -25,8 +25,8 @@ export function CallStack() {
   };
 
   return (
-    <div className="relative h-full">
-      <div 
+    <div data-tour="call-stack" className="relative h-full">
+      <div
         className="h-full rounded-lg p-[2px]"
         style={{ background: 'var(--panel-callstack-gradient)' }}
       >

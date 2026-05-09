@@ -62,6 +62,7 @@ export function EventLoop() {
 
   return (
     <section
+      data-tour="event-loop"
       className="relative h-full w-full sm:w-auto"
       aria-label={`Event loop — ${config.label}: ${config.description}`}
     >

@@ -8,6 +8,7 @@ export function TaskQueue() {
 
   return (
     <section
+      data-tour="task-queue"
       className="relative h-full"
       aria-label={`Task queue (macrotasks) — ${taskQueue.length} ${taskQueue.length === 1 ? 'task' : 'tasks'}`}
     >

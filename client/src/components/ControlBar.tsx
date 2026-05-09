@@ -5,6 +5,7 @@ import {
   GitCompare,
   MemoryStick,
   Lightbulb,
+  MapPin,
   Sun, Moon
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -34,6 +35,7 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExamplesControlPanel } from '@/components/ExamplesControlPanel';
+import { startTour } from '@/lib/tour';
 
 interface ControlBarProps {
   onRun: () => void;
@@ -268,6 +270,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
+                data-tour="view-menu"
                 variant="outline"
                 size="sm"
                 className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2"
@@ -327,6 +330,18 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? <Sun className="w-4 h-4" aria-hidden="true" /> : <Moon className="w-4 h-4" aria-hidden="true" />}
+        </Button>
+
+        {/* Tour replay */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={startTour}
+          className="hidden lg:flex bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2 ml-1"
+          title="Take a guided tour"
+          aria-label="Take a guided tour"
+        >
+          <MapPin className="w-4 h-4" aria-hidden="true" />
         </Button>
 
         {/* Share + Settings */}

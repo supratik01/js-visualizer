@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Layers, Globe, ListOrdered, Zap, RefreshCw, CircleDot, StepForward, Play, BookOpen } from 'lucide-react';
+import { Layers, Globe, ListOrdered, Zap, RefreshCw, CircleDot, StepForward, Play, BookOpen, MapPin } from 'lucide-react';
+import { startTour } from '@/lib/tour';
 
 const STORAGE_KEY = 'js-viz-onboarded';
 
@@ -128,7 +129,15 @@ export function OnboardingDialog() {
           </div>
 
           {/* CTA */}
-          <div className="flex justify-end pt-1 pb-1">
+          <div className="flex items-center justify-between pt-1 pb-1">
+            <Button
+              variant="outline"
+              onClick={() => { dismiss(); setTimeout(startTour, 300); }}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-2"
+            >
+              <MapPin className="w-4 h-4" />
+              Take a Tour
+            </Button>
             <Button
               onClick={dismiss}
               className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold px-6"

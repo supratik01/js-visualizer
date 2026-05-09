@@ -86,7 +86,7 @@ export function CodeEditor() {
   }, [currentLine, executionState, isBreakpointAtLine]);
 
   return (
-    <div className="flex flex-col h-full bg-[hsl(var(--app-panel-deep))] rounded-lg overflow-hidden">
+    <div data-tour="code-editor" className="flex flex-col h-full bg-[hsl(var(--app-panel-deep))] rounded-lg overflow-hidden">
       <style>{`
         /* Dark mode (default) — soft yellow glow on dark editor */
         .execution-line-highlight {

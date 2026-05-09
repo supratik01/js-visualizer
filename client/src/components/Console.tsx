@@ -40,7 +40,7 @@ export function Console() {
   };
 
   return (
-    <section className="relative h-full" aria-label="Console output panel">
+    <section data-tour="console" className="relative h-full" aria-label="Console output panel">
       <div
         className="h-full rounded-lg p-[2px]"
         style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}

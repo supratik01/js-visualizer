@@ -25,8 +25,8 @@ export function WebAPIs() {
   const { webAPIs } = useRuntimeStore();
 
   return (
-    <div className="relative h-full">
-      <div 
+    <div data-tour="web-apis" className="relative h-full">
+      <div
         className="h-full rounded-lg p-[2px]"
         style={{ background: 'var(--panel-webapis-gradient)' }}
       >
