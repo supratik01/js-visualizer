@@ -50,7 +50,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
     showPerformancePanel, togglePerformancePanel,
     comparisonMode, setComparisonMode,
     exportState, importState, generateShareableLink,
-    showMemoryPanel, toggleMemoryPanel,
+    showMemoryPanel, toggleMemoryPanel, memoryFeatureUnlocked,
     showExplanationPanel, toggleExplanationPanel,
     customExamples, customCategoryLabels,
   } = useRuntimeStore();
@@ -306,16 +306,16 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
                 <Lightbulb className="w-4 h-4 mr-2" />
                 Step Explanations
               </DropdownMenuCheckboxItem>
-              {/* Memory Visualization toggle hidden for now — re-enable by uncommenting
-              <DropdownMenuCheckboxItem
-                checked={showMemoryPanel}
-                onCheckedChange={toggleMemoryPanel}
-                className="hover:bg-zinc-800 cursor-pointer"
-              >
-                <MemoryStick className="w-4 h-4 mr-2" />
-                Memory Visualization
-              </DropdownMenuCheckboxItem>
-              */}
+              {memoryFeatureUnlocked && (
+                <DropdownMenuCheckboxItem
+                  checked={showMemoryPanel}
+                  onCheckedChange={toggleMemoryPanel}
+                  className="hover:bg-zinc-800 cursor-pointer"
+                >
+                  <MemoryStick className="w-4 h-4 mr-2" />
+                  Memory Visualization
+                </DropdownMenuCheckboxItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -173,6 +173,7 @@ export interface RuntimeState {
   currentMemorySnapshot: MemorySnapshot | null;
   heapAllocations: MemoryAllocation[];
   showMemoryPanel: boolean;
+  memoryFeatureUnlocked: boolean;
   showExplanationPanel: boolean;
   
   setCode: (code: string) => void;
@@ -226,6 +227,7 @@ export interface RuntimeState {
   markAllocationForGC: (id: string, reason: string) => void;
   clearMemorySnapshots: () => void;
   toggleMemoryPanel: () => void;
+  unlockMemoryFeature: () => void;
   
   currentMemorySnapshotData: MemorySnapshotData | null;
   setCurrentMemorySnapshotData: (data: MemorySnapshotData | null) => void;
@@ -345,6 +347,7 @@ console.log(5);`,
   currentMemorySnapshot: null,
   heapAllocations: [],
   showMemoryPanel: false,
+  memoryFeatureUnlocked: false,
   showExplanationPanel: false,
   currentMemorySnapshotData: null,
   currentExplanation: null,
@@ -592,6 +595,11 @@ console.log(5);`,
   toggleExplanationPanel: () => set((state) => ({
     showExplanationPanel: !state.showExplanationPanel
   })),
+
+  unlockMemoryFeature: () => set({
+    memoryFeatureUnlocked: true,
+    showMemoryPanel: true,
+  }),
 
   toggleMemoryPanel: () => set((state) => ({
     showMemoryPanel: !state.showMemoryPanel 

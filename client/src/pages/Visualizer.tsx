@@ -52,6 +52,7 @@ export function Visualizer() {
     showExplanationPanel,
     setCode,
     importState,
+    unlockMemoryFeature,
   } = useRuntimeStore();
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -81,6 +82,12 @@ export function Visualizer() {
         setCode(match.code);
         window.history.replaceState(null, '', window.location.pathname);
       }
+    }
+
+    // ?memory=1 — unlocks the Memory Visualizer panel (A/B / beta access)
+    if (params.get('memory') === '1') {
+      unlockMemoryFeature();
+      window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
