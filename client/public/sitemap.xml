@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  sitemap.xml for JS Visualizer
-  https://www.sitemaps.org/protocol.html
-
-  actual deployment URL. Submit this sitemap to Google Search Console and
-  Bing Webmaster Tools after deployment.
--->
+<!-- sitemap.xml for JS Visualizer — https://www.sitemaps.org/protocol.html -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <url>
     <loc>https://www.jsvisualizer.bytefront.dev/</loc>
-    <lastmod>2026-05-04</lastmod>
+    <lastmod>2026-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.jsvisualizer.bytefront.dev/" />
