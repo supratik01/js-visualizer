@@ -15,6 +15,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { useRuntimeStore, type ExecutionStep } from "@/lib/runtimeStore";
 import { parseAndSimulate } from "@/lib/executionEngine";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
+import { FeedbackButton } from "@/components/FeedbackButton";
 import { slugify } from "@/lib/utils";
 
 export function Visualizer() {
@@ -315,6 +316,7 @@ export function Visualizer() {
       data-testid="visualizer-container"
     >
       <OnboardingDialog />
+      <FeedbackButton />
 
       {/* Skip-to-content link — visible only when keyboard-focused */}
       <a
