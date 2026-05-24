@@ -196,7 +196,6 @@ export function Visualizer() {
     const { executionSteps, currentStepIndex } = state;
 
     if (currentStepIndex + 1 >= executionSteps.length) {
-      setExecutionState("completed");
       setEventLoopPhase("idle");
       updatePerformanceMetrics({
         executionEndTime: Date.now(),
@@ -205,6 +204,10 @@ export function Visualizer() {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      // Mark completed briefly so the live-region announces it,
+      // then immediately transition back to idle so Run is re-enabled.
+      setExecutionState("completed");
+      setTimeout(() => setExecutionState("idle"), 50);
       return;
     }
 
@@ -226,6 +229,12 @@ export function Visualizer() {
     }
 
     if (executionState === "idle") {
+      // If panels still have data from a previous run, clear them first
+      const { executionSteps: prevSteps } = useRuntimeStore.getState();
+      if (prevSteps.length > 0) {
+        reset();
+      }
+
       const steps = parseAndSimulate(code);
       setExecutionSteps(steps);
       setEventLoopPhase("executing");
@@ -234,7 +243,7 @@ export function Visualizer() {
         executionStartTime: Date.now(),
         executionEndTime: undefined,
       });
-      
+
       if (comparisonMode && comparisonCode) {
         const compSteps = parseAndSimulate(comparisonCode);
         setComparisonSteps(compSteps);
@@ -258,6 +267,7 @@ export function Visualizer() {
     comparisonMode,
     comparisonCode,
     setComparisonSteps,
+    reset,
   ]);
 
   const handleStep = useCallback(() => {

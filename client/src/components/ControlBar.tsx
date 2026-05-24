@@ -67,7 +67,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
   };
 
   const isRunning = executionState === 'running';
-  const isCompleted = executionState === 'completed';
+  const isCompleted = false; // execution transitions back to idle on finish — Run is always re-enabled
   const isPaused = executionState === 'paused' || executionState === 'breakpoint';
 
   const groupedExamples = customExamples
