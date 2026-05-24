@@ -83,6 +83,11 @@ export function CodeEditor() {
       decorationsRef.current,
       newDecorations,
     );
+
+    // Scroll only if the highlighted line is outside the visible viewport
+    if (currentLine && currentLine > 0 && executionState !== "idle") {
+      editorRef.current.revealLineInCenterIfOutsideViewport(currentLine);
+    }
   }, [currentLine, executionState, isBreakpointAtLine]);
 
   return (
