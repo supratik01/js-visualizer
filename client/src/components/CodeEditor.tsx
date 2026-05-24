@@ -84,9 +84,12 @@ export function CodeEditor() {
       newDecorations,
     );
 
-    // Scroll only if the highlighted line is outside the visible viewport
-    if (currentLine && currentLine > 0 && executionState !== "idle") {
-      editorRef.current.revealLineInCenterIfOutsideViewport(currentLine);
+    // Scroll only if the highlighted line is outside the visible viewport (smooth)
+    if (currentLine && currentLine > 0 && executionState !== "idle" && monacoRef.current) {
+      editorRef.current.revealLineInCenterIfOutsideViewport(
+        currentLine,
+        monacoRef.current.editor.ScrollType.Smooth,
+      );
     }
   }, [currentLine, executionState, isBreakpointAtLine]);
 
