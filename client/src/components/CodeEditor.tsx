@@ -84,9 +84,9 @@ export function CodeEditor() {
       newDecorations,
     );
 
-    // Scroll only if the highlighted line is outside the visible viewport (smooth)
+    // Scroll minimally — only enough to keep the line visible, never re-centering
     if (currentLine && currentLine > 0 && executionState !== "idle" && monacoRef.current) {
-      editorRef.current.revealLineInCenterIfOutsideViewport(
+      editorRef.current.revealLine(
         currentLine,
         monacoRef.current.editor.ScrollType.Smooth,
       );
