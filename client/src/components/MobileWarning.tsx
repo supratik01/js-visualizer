@@ -1,19 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Monitor, X } from 'lucide-react';
+import { Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const STORAGE_KEY = 'js-viz-mobile-dismissed';
-const MOBILE_BREAKPOINT = 768; // px — below this = show warning
+
+function isPortraitMobile() {
+  return window.innerWidth < 768 && window.innerHeight > window.innerWidth;
+}
 
 export function MobileWarning() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const alreadyDismissed = sessionStorage.getItem(STORAGE_KEY);
-    if (alreadyDismissed) return;
-    if (window.innerWidth < MOBILE_BREAKPOINT) {
+    // Don't show if already dismissed this session
+    if (sessionStorage.getItem(STORAGE_KEY)) return;
+
+    // Show only if in portrait + narrow on mount
+    if (isPortraitMobile()) {
       setShow(true);
     }
+
+    // Auto-dismiss when user rotates to landscape
+    function handleResize() {
+      if (!isPortraitMobile()) {
+        setShow(false);
+      }
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   function dismiss() {
@@ -61,16 +76,15 @@ export function MobileWarning() {
         <Button
           onClick={dismiss}
           variant="outline"
-          className="border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 text-sm"
+          className="border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 text-sm h-11"
         >
-          <X className="w-4 h-4 mr-2" aria-hidden="true" />
           Continue anyway
         </Button>
       </div>
 
-      {/* Subtle tip */}
+      {/* Tip */}
       <p className="mt-6 text-[11px] text-zinc-600">
-        Tip: rotate to landscape for a better view on tablets
+        Tip: rotate to landscape to dismiss this automatically
       </p>
     </div>
   );
