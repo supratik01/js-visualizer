@@ -1,48 +1,42 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Monitor } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const STORAGE_KEY = 'js-viz-mobile-dismissed';
 
-function shouldShow() {
-  // Show only when screen is narrow AND in portrait orientation
+function isPortraitMobile() {
   return window.innerWidth < 768 && window.innerHeight > window.innerWidth;
 }
 
 export function MobileWarning() {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(() => {
+    // Evaluate immediately on first render — no useEffect needed for initial state
+    if (typeof window === 'undefined') return false;
+    if (sessionStorage.getItem(STORAGE_KEY)) return false;
+    return isPortraitMobile();
+  });
 
-  const dismiss = useCallback(() => {
-    sessionStorage.setItem(STORAGE_KEY, '1');
-    setShow(false);
-  }, []);
-
+  // Auto-dismiss when rotating to landscape
   useEffect(() => {
-    // Already dismissed this session — never show again
-    if (sessionStorage.getItem(STORAGE_KEY)) return;
-
-    // Show immediately if portrait + narrow on mount
-    if (shouldShow()) setShow(true);
-
-    // Check orientation after browser has finished updating dimensions.
-    // Both 'orientationchange' and 'resize' are needed for cross-browser coverage.
-    // requestAnimationFrame defers the check until after the layout has settled.
-    function onOrientationChange() {
+    function check() {
+      // rAF ensures dimensions are updated after rotation animation
       requestAnimationFrame(() => {
-        if (!shouldShow()) setShow(false);
+        if (!isPortraitMobile()) setShow(false);
       });
     }
-
-    window.addEventListener('resize', onOrientationChange);
-    window.addEventListener('orientationchange', onOrientationChange);
-
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
     return () => {
-      window.removeEventListener('resize', onOrientationChange);
-      window.removeEventListener('orientationchange', onOrientationChange);
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
     };
   }, []);
 
   if (!show) return null;
+
+  function handleDismiss() {
+    sessionStorage.setItem(STORAGE_KEY, '1');
+    setShow(false);
+  }
 
   return (
     <div
@@ -52,12 +46,12 @@ export function MobileWarning() {
       aria-label="Desktop recommended"
     >
       {/* Icon */}
-      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6 flex-shrink-0">
+      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6">
         <Monitor className="w-8 h-8 text-amber-400" aria-hidden="true" />
       </div>
 
       {/* Logo */}
-      <div className="flex items-center gap-2.5 mb-6 flex-shrink-0">
+      <div className="flex items-center gap-2.5 mb-6">
         <img src="/logo.png" alt="" className="w-8 h-8 object-contain" aria-hidden="true" />
         <span className="text-sm font-bold tracking-widest">
           <span style={{ color: '#E2B135' }}>JS</span>
@@ -66,10 +60,8 @@ export function MobileWarning() {
       </div>
 
       {/* Message */}
-      <div className="mb-8 flex-shrink-0">
-        <h2 className="text-lg font-bold text-zinc-100 mb-3">
-          Best on Desktop
-        </h2>
+      <div className="mb-8">
+        <h2 className="text-lg font-bold text-zinc-100 mb-3">Best on Desktop</h2>
         <p className="text-sm text-zinc-400 leading-relaxed max-w-xs mb-2">
           JS Visualizer is an interactive coding tool with multiple panels — it
           works best on a larger screen.
@@ -79,20 +71,17 @@ export function MobileWarning() {
         </p>
       </div>
 
-      {/* Continue button — explicit touch + click for mobile reliability */}
-      <div className="w-full max-w-xs flex-shrink-0">
-        <Button
-          onClick={dismiss}
-          onTouchEnd={(e) => { e.preventDefault(); dismiss(); }}
-          variant="outline"
-          className="w-full border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 text-sm h-12 touch-manipulation"
-        >
-          Continue anyway
-        </Button>
-      </div>
+      {/* Plain button — no wrapper component, no touch overrides */}
+      <button
+        type="button"
+        onClick={handleDismiss}
+        style={{ touchAction: 'manipulation' }}
+        className="w-full max-w-xs h-12 rounded-lg border border-zinc-700 bg-transparent text-zinc-300 text-sm font-medium active:bg-zinc-800 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+      >
+        Continue anyway
+      </button>
 
-      {/* Tip */}
-      <p className="mt-6 text-[11px] text-zinc-600 flex-shrink-0">
+      <p className="mt-6 text-[11px] text-zinc-600">
         Tip: rotate to landscape to dismiss this automatically
       </p>
     </div>
