@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { Visualizer } from "@/pages/Visualizer";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
+import { NotFound } from "@/pages/NotFound";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Visualizer} />
       <Route path="/privacy" component={PrivacyPolicy} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
