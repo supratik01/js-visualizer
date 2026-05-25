@@ -33,11 +33,13 @@ export function getConsentStatus(): ConsentStatus {
 export function grantConsent() {
   localStorage.setItem(CONSENT_KEY, 'granted');
   gtag('consent', 'update', { analytics_storage: 'granted' });
+  window.dispatchEvent(new Event('cookie-consent-resolved'));
 }
 
 export function denyConsent() {
   localStorage.setItem(CONSENT_KEY, 'denied');
   gtag('consent', 'update', { analytics_storage: 'denied' });
+  window.dispatchEvent(new Event('cookie-consent-resolved'));
 }
 
 // ─── Execution ────────────────────────────────────────────────────────────

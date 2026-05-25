@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageSquare, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { getConsentStatus } from '@/lib/analytics';
 import { trackFeedbackSubmitted } from '@/lib/analytics';
 
 const ACCESS_KEY = import.meta.env.VITE_W3FORMS_ACCESS_KEY as string;
@@ -39,6 +40,19 @@ export function FeedbackButton() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // On mobile, hide the button until the user has acted on the cookie banner
+  // so it doesn't overlap with it. On desktop it's always visible.
+  const isMobile = () => window.matchMedia('(max-width: 639px)').matches;
+  const [showOnMobile, setShowOnMobile] = useState(
+    () => !isMobile() || getConsentStatus() !== null,
+  );
+  useEffect(() => {
+    if (showOnMobile) return;
+    const handler = () => setShowOnMobile(true);
+    window.addEventListener('cookie-consent-resolved', handler);
+    return () => window.removeEventListener('cookie-consent-resolved', handler);
+  }, [showOnMobile]);
   const { toast } = useToast();
 
   function resetForm() {
@@ -102,10 +116,11 @@ export function FeedbackButton() {
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Floating trigger button — hidden on mobile until cookie consent resolved */}
       <button
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
+        style={{ display: showOnMobile ? undefined : 'none' }}
         className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-semibold shadow-lg shadow-amber-900/30 transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
       >
         <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />

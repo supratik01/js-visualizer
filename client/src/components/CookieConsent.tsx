@@ -4,7 +4,7 @@ import { Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getConsentStatus, grantConsent, denyConsent } from '@/lib/analytics';
 
-const DELAY_MS = 30_000; // show after 30 s — lets onboarding finish first
+const DELAY_MS = 15_000; // show after 15 s — lets onboarding finish first
 
 export function CookieConsent() {
   // Start hidden; reveal after delay (only if user hasn't already decided)
