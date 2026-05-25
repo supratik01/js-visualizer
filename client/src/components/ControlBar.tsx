@@ -34,6 +34,12 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ExamplesControlPanel } from '@/components/ExamplesControlPanel';
 import { startTour } from '@/lib/tour';
+import {
+  trackRunClicked, trackStepClicked, trackResetClicked,
+  trackExampleLoaded, trackManageExamplesOpened,
+  trackPanelToggled, trackShareClicked, trackTourStarted,
+  trackSpeedChanged,
+} from '@/lib/analytics';
 
 interface ControlBarProps {
   onRun: () => void;
@@ -58,9 +64,10 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
   const [showManageExamples, setShowManageExamples] = useState(false);
   const [shareLink, setShareLink] = useState('');
 
-  const handleExampleSelect = (code: string) => {
+  const handleExampleSelect = (code: string, title: string, category: string) => {
     reset();
     setCode(code);
+    trackExampleLoaded(title, category);
   };
 
   const isRunning = executionState === 'running';
@@ -89,6 +96,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
     const link = generateShareableLink();
     setShareLink(link);
     navigator.clipboard.writeText(link);
+    trackShareClicked();
     toast({
       title: "Link Copied!",
       description: "Shareable link copied to clipboard",
@@ -138,7 +146,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
                 {examples.map((example) => (
                   <DropdownMenuItem
                     key={example.id}
-                    onClick={() => handleExampleSelect(example.code)}
+                    onClick={() => handleExampleSelect(example.code, example.title, example.category)}
                     className="flex flex-col items-start gap-0.5 py-2 hover:bg-zinc-800 cursor-pointer"
                   >
                     <span className="font-medium text-zinc-200">{example.title}</span>
@@ -175,7 +183,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
                 {examples.map((example) => (
                   <DropdownMenuItem
                     key={example.id}
-                    onClick={() => handleExampleSelect(example.code)}
+                    onClick={() => handleExampleSelect(example.code, example.title, example.category)}
                     className="flex flex-col items-start gap-0.5 py-2 hover:bg-zinc-800 cursor-pointer"
                     data-testid={`example-item-${example.id}`}
                   >
@@ -191,7 +199,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
         <div className="flex items-center gap-1.5 sm:gap-2">
           <Button
             size="sm"
-            onClick={onRun}
+            onClick={() => { trackRunClicked(executionState as 'idle' | 'paused' | 'breakpoint'); onRun(); }}
             disabled={isCompleted}
             className={isRunning 
               ? "bg-amber-600 hover:bg-amber-700 text-white border-none px-2 sm:px-3" 
@@ -210,7 +218,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={onStep}
+            onClick={() => { trackStepClicked(); onStep(); }}
             disabled={isRunning || isCompleted}
             className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-40 px-2 sm:px-3"
             data-testid="button-step"
@@ -222,7 +230,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={onReset}
+            onClick={() => { trackResetClicked(); onReset(); }}
             className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2 sm:px-3"
             data-testid="button-reset"
           >
@@ -250,7 +258,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <DropdownMenuLabel className="text-xs text-zinc-400">View Panels</DropdownMenuLabel>
               <DropdownMenuCheckboxItem
                 checked={showPerformancePanel}
-                onCheckedChange={togglePerformancePanel}
+                onCheckedChange={(v) => { togglePerformancePanel(); trackPanelToggled('performance', v); }}
                 className="hover:bg-zinc-800 cursor-pointer"
               >
                 <Activity className="w-4 h-4 mr-2" />
@@ -258,7 +266,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={comparisonMode}
-                onCheckedChange={setComparisonMode}
+                onCheckedChange={(v) => { setComparisonMode(v); trackPanelToggled('comparison', v); }}
                 className="hover:bg-zinc-800 cursor-pointer"
               >
                 <GitCompare className="w-4 h-4 mr-2" />
@@ -266,7 +274,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showExplanationPanel}
-                onCheckedChange={toggleExplanationPanel}
+                onCheckedChange={(v) => { toggleExplanationPanel(); trackPanelToggled('explanation', v); }}
                 className="hover:bg-zinc-800 cursor-pointer"
               >
                 <Lightbulb className="w-4 h-4 mr-2" />
@@ -275,7 +283,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               {memoryFeatureUnlocked && (
                 <DropdownMenuCheckboxItem
                   checked={showMemoryPanel}
-                  onCheckedChange={toggleMemoryPanel}
+                  onCheckedChange={(v) => { toggleMemoryPanel(); trackPanelToggled('memory', v); }}
                   className="hover:bg-zinc-800 cursor-pointer"
                 >
                   <MemoryStick className="w-4 h-4 mr-2" />
@@ -302,7 +310,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={startTour}
+          onClick={() => { trackTourStarted('toolbar'); startTour(); }}
           className="hidden lg:flex bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2 ml-1"
           title="Take a guided tour"
           aria-label="Take a guided tour"
@@ -323,7 +331,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
             <Share2 className="w-4 h-4" aria-hidden="true" />
           </Button>
 
-          <Dialog open={showManageExamples} onOpenChange={setShowManageExamples}>
+          <Dialog open={showManageExamples} onOpenChange={(v) => { setShowManageExamples(v); if (v) trackManageExamplesOpened(); }}>
             <DialogTrigger asChild>
               <Button
                 variant="outline"
@@ -363,7 +371,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           </span>
           <Slider
             value={[speed]}
-            onValueChange={([value]) => setSpeed(value)}
+            onValueChange={([value]) => { setSpeed(value); trackSpeedChanged(value); }}
             min={100}
             max={2000}
             step={100}

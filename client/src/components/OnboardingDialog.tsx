@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Layers, Globe, ListOrdered, Zap, RefreshCw, CircleDot, StepForward, Play, BookOpen, MapPin } from 'lucide-react';
 import { startTour } from '@/lib/tour';
+import { trackTourStarted } from '@/lib/analytics';
 
 const STORAGE_KEY = 'js-viz-onboarded';
 
@@ -132,7 +133,7 @@ export function OnboardingDialog() {
           <div className="flex items-center justify-between pt-1 pb-1">
             <Button
               variant="outline"
-              onClick={() => { dismiss(); setTimeout(startTour, 300); }}
+              onClick={() => { dismiss(); trackTourStarted('onboarding'); setTimeout(startTour, 300); }}
               className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-2"
             >
               <MapPin className="w-4 h-4" />

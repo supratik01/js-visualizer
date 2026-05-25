@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { trackFeedbackSubmitted } from '@/lib/analytics';
 
 const ACCESS_KEY = import.meta.env.VITE_W3FORMS_ACCESS_KEY as string;
 
@@ -84,6 +85,7 @@ export function FeedbackButton() {
 
       if (data.success) {
         setSubmitted(true);
+        trackFeedbackSubmitted(type);
       } else {
         throw new Error(data.message || 'Submission failed');
       }

@@ -15,6 +15,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { useRuntimeStore, type ExecutionStep } from "@/lib/runtimeStore";
 import { parseAndSimulate } from "@/lib/executionEngine";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
+import { trackExecutionCompleted } from "@/lib/analytics";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { slugify } from "@/lib/utils";
 
@@ -197,8 +198,11 @@ export function Visualizer() {
 
     if (currentStepIndex + 1 >= executionSteps.length) {
       setEventLoopPhase("idle");
-      updatePerformanceMetrics({
-        executionEndTime: Date.now(),
+      const endTime = Date.now();
+      updatePerformanceMetrics({ executionEndTime: endTime });
+      trackExecutionCompleted({
+        steps_count: executionSteps.length,
+        duration_ms: endTime - executionStartRef.current,
       });
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
