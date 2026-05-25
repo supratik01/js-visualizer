@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -60,8 +60,43 @@ const tips = [
   { icon: StepForward, text: 'Use the speed slider to slow down or speed up playback.' },
 ];
 
+const MOBILE_WARNING_KEY = 'js-viz-mobile-dismissed';
+
+function shouldDeferForMobileWarning() {
+  // If the mobile warning will be shown (portrait + narrow + not dismissed),
+  // defer onboarding so the two overlays don't conflict.
+  if (typeof window === 'undefined') return false;
+  if (sessionStorage.getItem(MOBILE_WARNING_KEY)) return false;
+  return window.innerWidth < 768 && window.innerHeight > window.innerWidth;
+}
+
 export function OnboardingDialog() {
-  const [open, setOpen] = useState(() => !localStorage.getItem(STORAGE_KEY));
+  const [open, setOpen] = useState(
+    () => !localStorage.getItem(STORAGE_KEY) && !shouldDeferForMobileWarning(),
+  );
+
+  // If mobile warning is showing, wait for it to be dismissed before opening
+  useEffect(() => {
+    if (open) return;
+    if (localStorage.getItem(STORAGE_KEY)) return; // already onboarded
+    if (!shouldDeferForMobileWarning()) return; // not deferred → nothing to wait for
+
+    function check() {
+      if (!shouldDeferForMobileWarning()) {
+        setOpen(true);
+      }
+    }
+    // sessionStorage doesn't fire 'storage' events same-tab, so poll via
+    // resize (rotation) and a short interval as fallback
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    const interval = setInterval(check, 500);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+      clearInterval(interval);
+    };
+  }, [open]);
 
   function dismiss() {
     localStorage.setItem(STORAGE_KEY, '1');
