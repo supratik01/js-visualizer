@@ -18,6 +18,7 @@ import { OnboardingDialog } from "@/components/OnboardingDialog";
 import { trackExecutionCompleted } from "@/lib/analytics";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { CookieConsent } from "@/components/CookieConsent";
+import { Footer } from "@/components/Footer";
 import { slugify } from "@/lib/utils";
 
 export function Visualizer() {
@@ -440,6 +441,7 @@ export function Visualizer() {
         )}
       </ResizablePanelGroup>
       </main>
+      <Footer />
     </div>
   );
 }
