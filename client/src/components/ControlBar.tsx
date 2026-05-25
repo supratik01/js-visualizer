@@ -1,7 +1,7 @@
 import {
   Play, Pause, StepForward, RotateCcw, ChevronDown, Code2,
   CircleDot,
-  Download, Upload, Share2, Eye, Activity, Settings,
+  Share2, Eye, Activity, BookOpen,
   GitCompare,
   MemoryStick,
   Lightbulb,
@@ -28,12 +28,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useRuntimeStore } from '@/lib/runtimeStore';
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExamplesControlPanel } from '@/components/ExamplesControlPanel';
 import { startTour } from '@/lib/tour';
 
@@ -49,7 +47,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
     breakpoints,
     showPerformancePanel, togglePerformancePanel,
     comparisonMode, setComparisonMode,
-    exportState, importState, generateShareableLink,
+    generateShareableLink,
     showMemoryPanel, toggleMemoryPanel, memoryFeatureUnlocked,
     showExplanationPanel, toggleExplanationPanel,
     customExamples, customCategoryLabels,
@@ -57,8 +55,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
 
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [importData, setImportData] = useState('');
+  const [showManageExamples, setShowManageExamples] = useState(false);
   const [shareLink, setShareLink] = useState('');
 
   const handleExampleSelect = (code: string) => {
@@ -87,37 +84,6 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
       return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
     }
   );
-
-  const handleExport = useCallback(() => {
-    const data = exportState();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'js-visualizer-state.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({
-      title: "Export Successful",
-      description: "Configuration exported to file",
-    });
-  }, [exportState, toast]);
-
-  const handleImport = useCallback(() => {
-    if (importState(importData)) {
-      setImportData('');
-      toast({
-        title: "Import Successful",
-        description: "Configuration imported successfully",
-      });
-    } else {
-      toast({
-        title: "Import Failed",
-        description: "Invalid configuration data",
-        variant: "destructive",
-      });
-    }
-  }, [importData, importState, toast]);
 
   const handleShare = useCallback(() => {
     const link = generateShareableLink();
@@ -357,90 +323,28 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
             <Share2 className="w-4 h-4" aria-hidden="true" />
           </Button>
 
-          <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+          <Dialog open={showManageExamples} onOpenChange={setShowManageExamples}>
             <DialogTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
                 className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2"
-                title="Settings"
-                aria-label="Open settings"
+                title="Manage Examples"
+                aria-label="Manage Examples"
               >
-                <Settings className="w-4 h-4" aria-hidden="true" />
+                <BookOpen className="w-4 h-4" aria-hidden="true" />
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-5xl max-w-[95vw] bg-zinc-900 border-zinc-700 p-0 overflow-hidden max-h-[90vh]">
               <DialogHeader className="px-6 pt-5 pb-3 border-b border-zinc-800 flex-shrink-0">
-                <DialogTitle className="text-white">Settings</DialogTitle>
+                <DialogTitle className="text-white">Manage Examples</DialogTitle>
                 <DialogDescription className="text-zinc-400">
-                  Manage examples, export and import your configuration
+                  Add, edit, reorder, or hide examples from the Examples menu
                 </DialogDescription>
               </DialogHeader>
-
-              <Tabs defaultValue="examples" className="flex flex-col flex-1 min-h-0">
-                <TabsList className="mx-6 mt-4 mb-0 bg-zinc-800 w-fit flex-shrink-0">
-                  <TabsTrigger
-                    value="examples"
-                    className="text-xs data-[state=active]:bg-zinc-700 data-[state=active]:text-white"
-                  >
-                    Examples Control
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="export"
-                    className="text-xs data-[state=active]:bg-zinc-700 data-[state=active]:text-white"
-                  >
-                    Export / Import
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="examples" className="mt-4 px-4 pb-4 flex-1 min-h-0 overflow-auto">
-                  <ExamplesControlPanel />
-                </TabsContent>
-
-                <TabsContent value="export" className="mt-4 px-6 pb-6 flex-shrink-0">
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Button onClick={handleExport} className="flex-1 bg-zinc-800 hover:bg-zinc-700">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = '.json';
-                          input.onchange = (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                setImportData(ev.target?.result as string);
-                              };
-                              reader.readAsText(file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        className="flex-1 bg-zinc-800 hover:bg-zinc-700"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Import File
-                      </Button>
-                    </div>
-                    {importData && (
-                      <div className="space-y-2">
-                        <Label className="text-zinc-300">Import Data</Label>
-                        <div className="p-2 bg-zinc-800 rounded text-xs text-zinc-400 max-h-24 overflow-auto">
-                          {importData.slice(0, 200)}...
-                        </div>
-                        <Button onClick={handleImport} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                          Apply Import
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="mt-4 px-4 pb-4 flex-1 min-h-0 overflow-auto">
+                <ExamplesControlPanel />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
