@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { Visualizer } from "@/pages/Visualizer";
+import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -12,6 +13,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Visualizer} />
+      <Route path="/privacy" component={PrivacyPolicy} />
     </Switch>
   );
 }
