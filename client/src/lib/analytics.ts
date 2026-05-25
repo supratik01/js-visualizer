@@ -18,6 +18,28 @@ function gtag(...args: unknown[]) {
   }
 }
 
+// ─── Consent ──────────────────────────────────────────────────────────────
+
+const CONSENT_KEY = 'js-viz-cookie-consent';
+
+export type ConsentStatus = 'granted' | 'denied' | null;
+
+export function getConsentStatus(): ConsentStatus {
+  const val = localStorage.getItem(CONSENT_KEY);
+  if (val === 'granted' || val === 'denied') return val;
+  return null;
+}
+
+export function grantConsent() {
+  localStorage.setItem(CONSENT_KEY, 'granted');
+  gtag('consent', 'update', { analytics_storage: 'granted' });
+}
+
+export function denyConsent() {
+  localStorage.setItem(CONSENT_KEY, 'denied');
+  gtag('consent', 'update', { analytics_storage: 'denied' });
+}
+
 // ─── Execution ────────────────────────────────────────────────────────────
 
 export function trackRunClicked(fromState: 'idle' | 'paused' | 'breakpoint') {

@@ -17,6 +17,7 @@ import { parseAndSimulate } from "@/lib/executionEngine";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
 import { trackExecutionCompleted } from "@/lib/analytics";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { CookieConsent } from "@/components/CookieConsent";
 import { slugify } from "@/lib/utils";
 
 export function Visualizer() {
@@ -331,6 +332,7 @@ export function Visualizer() {
     >
       <OnboardingDialog />
       <FeedbackButton />
+      <CookieConsent />
 
       {/* Skip-to-content link — visible only when keyboard-focused */}
       <a
