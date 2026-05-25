@@ -6,7 +6,7 @@
 
   <url>
     <loc>https://www.jsvisualizer.bytefront.dev/</loc>
-    <lastmod>2026-05-10</lastmod>
+    <lastmod>2026-05-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.jsvisualizer.bytefront.dev/" />
@@ -20,6 +20,13 @@
       <image:loc>https://www.jsvisualizer.bytefront.dev/logo.png</image:loc>
       <image:title>JS Visualizer Logo</image:title>
     </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.jsvisualizer.bytefront.dev/privacy</loc>
+    <lastmod>2026-05-26</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
   </url>
 
 </urlset>
