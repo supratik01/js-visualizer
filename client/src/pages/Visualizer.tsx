@@ -19,6 +19,7 @@ import { trackExecutionCompleted } from "@/lib/analytics";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Footer } from "@/components/Footer";
+import { MobileWarning } from "@/components/MobileWarning";
 import { slugify } from "@/lib/utils";
 
 export function Visualizer() {
@@ -331,6 +332,7 @@ export function Visualizer() {
       className="flex flex-col h-screen bg-background overflow-hidden"
       data-testid="visualizer-container"
     >
+      <MobileWarning />
       <OnboardingDialog />
       <FeedbackButton />
       <CookieConsent />
