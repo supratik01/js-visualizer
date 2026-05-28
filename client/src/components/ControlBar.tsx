@@ -33,6 +33,7 @@ import { useRuntimeStore } from '@/lib/runtimeStore';
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ExamplesControlPanel } from '@/components/ExamplesControlPanel';
+import { ProductHuntBadge } from '@/components/ProductHuntBadge';
 import { startTour } from '@/lib/tour';
 import {
   trackRunClicked, trackStepClicked, trackResetClicked,
@@ -379,6 +380,9 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
             data-testid="slider-speed"
           />
         </div>
+
+        {/* Product Hunt launch badge — desktop only, controlled by VITE_SHOW_PH_BADGE */}
+        <ProductHuntBadge />
       </div>
     </header>
   );
