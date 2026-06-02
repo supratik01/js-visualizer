@@ -1,15 +1,15 @@
 /**
- * Inline Product Hunt launch badge for the ControlBar (header).
+ * Inline launch badge for the ControlBar (header).
  *
  * Desktop only — hidden below sm breakpoint because the toolbar is already
  * dense on mobile and the badge would force horizontal scroll.
  *
- * Feature flag (VITE_SHOW_PH_BADGE):
+ * Feature flag (VITE_SHOW_LAUNCH_BADGE):
  *  - undefined or "true" → badge visible (default, useful during launch week)
  *  - "false"             → badge hidden entirely
  *  Flip in Vercel → Settings → Environment Variables, then redeploy.
  */
-const FLAG = import.meta.env.VITE_SHOW_PH_BADGE;
+const FLAG = import.meta.env.VITE_SHOW_LAUNCH_BADGE ?? import.meta.env.VITE_SHOW_PH_BADGE;
 const ENABLED = FLAG === undefined || FLAG === 'true';
 
 export function ProductHuntBadge() {
@@ -17,10 +17,10 @@ export function ProductHuntBadge() {
 
   return (
     <a
-      href="https://www.producthunt.com/products/js-visualizer?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-js-visualizer"
+      href="https://smollaunch.com"
       target="_blank"
-      rel="noopener noreferrer"
-      aria-label="View JS Visualizer on Product Hunt"
+      rel="noopener"
+      aria-label="Featured on Smol Launch"
       className="
         hidden sm:flex items-center
         ml-3 pl-3 border-l border-zinc-700
@@ -32,10 +32,11 @@ export function ProductHuntBadge() {
       "
     >
       <img
-        alt="JS Visualizer - Finally understand the JS event loop | Product Hunt"
-        src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1156919&theme=dark&t=1780007298335"
-        width={185}
-        height={40}
+        alt="Featured on Smol Launch"
+        src="https://smollaunch.com/badges/featured-dark.svg"
+        loading="lazy"
+        width={210}
+        height={50}
         className="h-8 w-auto"
       />
     </a>
