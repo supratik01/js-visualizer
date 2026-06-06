@@ -89,6 +89,14 @@ export function Visualizer() {
       }
     }
 
+    // ?code=<urlencoded JS> — load arbitrary code (used by blog "Try it" links)
+    // URLSearchParams.get() already decodes, so no extra decodeURIComponent needed.
+    const rawCode = params.get('code');
+    if (rawCode) {
+      setCode(rawCode);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
     // ?memory=1 — unlocks the Memory Visualizer panel (A/B / beta access)
     if (params.get('memory') === '1') {
       unlockMemoryFeature();
