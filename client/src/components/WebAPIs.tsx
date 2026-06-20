@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRuntimeStore } from '@/lib/runtimeStore';
 import { Clock, RefreshCw, Globe, Wifi, Timer, Play, Pause, Eye, Radio, MessageSquare, Database, Plug, Send, Cpu, Users } from 'lucide-react';
+import { spring } from '@/lib/motion';
 
 const apiTypeConfig: Record<string, { icon: typeof Clock; color: string; label: string }> = {
   'setTimeout': { icon: Timer, color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', label: 'Timer' },
@@ -54,10 +55,11 @@ export function WebAPIs() {
                     return (
                       <motion.div
                         key={api.id}
+                        layout="position"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9, x: 50 }}
-                        transition={{ duration: 0.2 }}
+                        exit={{ opacity: 0, scale: 0.85, x: 50 }}
+                        transition={spring.pop}
                         className="bg-[hsl(var(--app-panel-item))] rounded-md px-3 py-2.5 font-mono text-sm text-foreground border border-zinc-600 overflow-hidden"
                         data-testid={`webapi-item-${api.id}`}
                         title={api.statusDetail || `Will queue to ${api.targetQueue || 'task'} queue`}

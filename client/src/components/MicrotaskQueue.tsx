@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRuntimeStore } from '@/lib/runtimeStore';
 import { Zap, ArrowRight } from 'lucide-react';
+import { spring, queueItemVariants } from '@/lib/motion';
 
 export function MicrotaskQueue() {
   const { microtaskQueue, eventLoopPhase } = useRuntimeStore();
@@ -62,10 +63,12 @@ export function MicrotaskQueue() {
                     return (
                       <motion.div
                         key={task.id}
-                        initial={{ opacity: 0, x: 30, scale: 0.9 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: -30, scale: 0.9 }}
-                        transition={{ duration: 0.2, delay: index * 0.05 }}
+                        layout="position"
+                        variants={queueItemVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={spring.pop}
                         className={`flex-shrink-0 bg-[hsl(var(--app-panel-item))] rounded-md px-3 py-2.5 font-mono text-sm text-foreground border ${
                           isFirst && isProcessing 
                             ? 'border-cyan-500/50 ring-1 ring-cyan-500/30' 

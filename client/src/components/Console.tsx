@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRuntimeStore } from '@/lib/runtimeStore';
 import { Terminal, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { spring } from '@/lib/motion';
 
 export function Console() {
   const { consoleOutput } = useRuntimeStore();
@@ -83,10 +84,11 @@ export function Console() {
                   {consoleOutput.map((entry, index) => (
                     <motion.div
                       key={entry.id}
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 5 }}
-                      transition={{ duration: 0.15 }}
+                      layout="position"
+                      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={spring.soft}
                       className={`flex items-start gap-2 px-2 py-1.5 rounded ${getEntryColor(entry.type)}`}
                       data-testid={`console-entry-${index}`}
                     >

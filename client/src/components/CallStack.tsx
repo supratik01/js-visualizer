@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRuntimeStore } from '@/lib/runtimeStore';
 import { Layers, Code, Zap, Globe, ChevronDown, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { spring, stackFrameVariants } from '@/lib/motion';
 
 const typeConfig: Record<string, { icon: typeof Layers; color: string; label: string }> = {
   'function': { icon: Code, color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'fn' },
@@ -56,10 +57,13 @@ export function CallStack() {
                     return (
                       <motion.div
                         key={frame.id}
-                        initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                        transition={{ duration: 0.2 }}
+                        layout="position"
+                        variants={stackFrameVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={spring.pop}
+                        style={{ originY: 1 }}
                         className={`bg-[hsl(var(--app-panel-item))] rounded-md px-3 py-2.5 font-mono text-sm text-foreground border ${
                           isTop ? 'border-orange-500/50 ring-1 ring-orange-500/30' : 'border-zinc-600'
                         }`}
