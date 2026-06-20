@@ -6,7 +6,8 @@ import {
   MemoryStick,
   Lightbulb,
   MapPin,
-  Sun, Moon
+  Sun, Moon,
+  Braces
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
     generateShareableLink,
     showMemoryPanel, toggleMemoryPanel, memoryFeatureUnlocked,
     showExplanationPanel, toggleExplanationPanel,
+    showVariablePanel, toggleVariablePanel,
     customExamples, customCategoryLabels,
   } = useRuntimeStore();
 
@@ -280,6 +282,14 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               >
                 <Lightbulb className="w-4 h-4 mr-2" />
                 Step Explanations
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showVariablePanel}
+                onCheckedChange={(v) => { toggleVariablePanel(); trackPanelToggled('variables', v); }}
+                className="hover:bg-zinc-800 cursor-pointer"
+              >
+                <Braces className="w-4 h-4 mr-2" />
+                Variable State
               </DropdownMenuCheckboxItem>
               {memoryFeatureUnlocked && (
                 <DropdownMenuCheckboxItem

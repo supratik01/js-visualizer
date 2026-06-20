@@ -11,6 +11,7 @@ import { PerformancePanel } from "@/components/PerformancePanel";
 import { ComparisonPanel } from "@/components/ComparisonPanel";
 import { MemoryVisualization } from "@/components/memory/MemoryVisualization";
 import { ExplanationPanel } from "@/components/ExplanationPanel";
+import { VariableStatePanel } from "@/components/VariableStatePanel";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRuntimeStore, type ExecutionStep } from "@/lib/runtimeStore";
 import { parseAndSimulate } from "@/lib/executionEngine";
@@ -55,6 +56,7 @@ export function Visualizer() {
     setComparisonSteps,
     showMemoryPanel,
     showExplanationPanel,
+    showVariablePanel,
     setCode,
     importState,
     unlockMemoryFeature,
@@ -333,7 +335,7 @@ export function Visualizer() {
     }
   }, [speed, executionState, processNextStep]);
 
-  const hasRightPanels = showPerformancePanel || comparisonMode;
+  const hasRightPanels = showPerformancePanel || comparisonMode || showVariablePanel;
 
   return (
     <div
@@ -433,6 +435,11 @@ export function Visualizer() {
                 {comparisonMode && (
                   <div className="flex-shrink-0">
                     <ComparisonPanel />
+                  </div>
+                )}
+                {showVariablePanel && (
+                  <div className="flex-shrink-0 h-[300px] lg:h-[400px]">
+                    <VariableStatePanel />
                   </div>
                 )}
               </div>

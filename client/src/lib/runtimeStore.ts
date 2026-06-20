@@ -175,7 +175,9 @@ export interface RuntimeState {
   showMemoryPanel: boolean;
   memoryFeatureUnlocked: boolean;
   showExplanationPanel: boolean;
-  
+  showVariablePanel: boolean;
+  previousMemorySnapshotData: MemorySnapshotData | null;
+
   setCode: (code: string) => void;
   setSpeed: (speed: number) => void;
   setExecutionState: (state: ExecutionState) => void;
@@ -210,6 +212,7 @@ export interface RuntimeState {
 
   togglePerformancePanel: () => void;
   toggleExplanationPanel: () => void;
+  toggleVariablePanel: () => void;
   
   setComparisonMode: (enabled: boolean) => void;
   setComparisonCode: (code: string) => void;
@@ -349,7 +352,9 @@ console.log(5);`,
   showMemoryPanel: false,
   memoryFeatureUnlocked: false,
   showExplanationPanel: false,
+  showVariablePanel: false,
   currentMemorySnapshotData: null,
+  previousMemorySnapshotData: null,
   currentExplanation: null,
 
   customExamples: codeExamples.map((ex, i) => ({
@@ -459,6 +464,7 @@ console.log(5);`,
     currentStepIndex: -1,
     performanceMetrics: createInitialMetrics(),
     currentMemorySnapshotData: null,
+    previousMemorySnapshotData: null,
     currentExplanation: null,
   }),
   
@@ -596,16 +602,23 @@ console.log(5);`,
     showExplanationPanel: !state.showExplanationPanel
   })),
 
+  toggleVariablePanel: () => set((state) => ({
+    showVariablePanel: !state.showVariablePanel
+  })),
+
   unlockMemoryFeature: () => set({
     memoryFeatureUnlocked: true,
     showMemoryPanel: true,
   }),
 
   toggleMemoryPanel: () => set((state) => ({
-    showMemoryPanel: !state.showMemoryPanel 
+    showMemoryPanel: !state.showMemoryPanel
   })),
-  
-  setCurrentMemorySnapshotData: (data) => set({ currentMemorySnapshotData: data }),
+
+  setCurrentMemorySnapshotData: (data) => set((state) => ({
+    previousMemorySnapshotData: state.currentMemorySnapshotData,
+    currentMemorySnapshotData: data,
+  })),
 
   setCurrentExplanation: (explanation) => set({ currentExplanation: explanation }),
 

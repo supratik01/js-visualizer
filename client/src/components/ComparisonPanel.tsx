@@ -9,7 +9,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { parseAndSimulate } from '@/lib/executionEngine';
 
 export function ComparisonPanel() {
-  const { 
+  const {
     comparisonMode,
     code,
     comparisonCode,
@@ -39,7 +39,7 @@ export function ComparisonPanel() {
   // Analyze differences between execution steps
   const analyzeSteps = (original: ExecutionStep[], comparison: ExecutionStep[]) => {
     const differences: { type: string; description: string; originalStep?: number; comparisonStep?: number }[] = [];
-    
+
     // Count different types of operations
     const countOps = (steps: ExecutionStep[]) => ({
       microtasks: steps.filter(s => s.type === 'add-microtask').length,
@@ -78,12 +78,12 @@ export function ComparisonPanel() {
     }
 
     // Check console output order
-    const getConsoleOutputs = (steps: ExecutionStep[]) => 
+    const getConsoleOutputs = (steps: ExecutionStep[]) =>
       steps.filter(s => s.type === 'console').map(s => s.data?.value || '');
-    
+
     const originalOutputs = getConsoleOutputs(original);
     const comparisonOutputs = getConsoleOutputs(comparison);
-    
+
     const outputMatches = originalOutputs.length === comparisonOutputs.length &&
       originalOutputs.every((val, i) => val === comparisonOutputs[i]);
 
@@ -93,9 +93,9 @@ export function ComparisonPanel() {
   const analysis = comparisonGenerated ? analyzeSteps(executionSteps, comparisonSteps) : null;
 
   return (
-    <Card className="bg-zinc-900/95 border-zinc-700/50 backdrop-blur-sm">
+    <Card className="bg-card/95 border-border/50 backdrop-blur-sm">
       <CardHeader className="pb-2 pt-3 px-4">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-white">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
           <GitCompare className="w-4 h-4 text-blue-400" />
           Code Comparison
         </CardTitle>
@@ -103,18 +103,18 @@ export function ComparisonPanel() {
       <CardContent className="px-4 pb-3 space-y-3">
         {/* Comparison Code Input */}
         <div className="space-y-2">
-          <div className="text-xs text-zinc-400">Compare with:</div>
+          <div className="text-xs text-muted-foreground">Compare with:</div>
           <Textarea
             value={comparisonCode}
             onChange={(e) => setComparisonCode(e.target.value)}
             placeholder="Paste alternative code here..."
-            className="bg-zinc-800 border-zinc-700 text-white text-xs font-mono min-h-[100px] resize-none"
+            className="bg-muted border-border text-foreground text-xs font-mono min-h-[100px] resize-none"
           />
           <Button
             size="sm"
             onClick={handleGenerateComparison}
             disabled={!comparisonCode.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Play className="w-3 h-3 mr-1" />
             Generate Comparison
@@ -123,7 +123,7 @@ export function ComparisonPanel() {
 
         {/* Analysis Results */}
         {analysis && (
-          <div className="space-y-3 pt-2 border-t border-zinc-700/50">
+          <div className="space-y-3 pt-2 border-t border-border/50">
             {/* Output Comparison */}
             <div className="flex items-center gap-2">
               {analysis.outputMatches ? (
@@ -142,23 +142,23 @@ export function ComparisonPanel() {
             {/* Console Output Side by Side */}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <div className="text-[10px] text-zinc-500">Original Output</div>
-                <ScrollArea className="h-20 bg-zinc-800/50 rounded p-2">
+                <div className="text-[10px] text-muted-foreground">Original Output</div>
+                <ScrollArea className="h-20 bg-muted/50 rounded p-2">
                   {analysis.originalOutputs.map((output, i) => (
-                    <div key={i} className="text-xs font-mono text-zinc-300">
+                    <div key={i} className="text-xs font-mono text-foreground/80">
                       {output}
                     </div>
                   ))}
                 </ScrollArea>
               </div>
               <div className="space-y-1">
-                <div className="text-[10px] text-zinc-500">Comparison Output</div>
-                <ScrollArea className="h-20 bg-zinc-800/50 rounded p-2">
+                <div className="text-[10px] text-muted-foreground">Comparison Output</div>
+                <ScrollArea className="h-20 bg-muted/50 rounded p-2">
                   {analysis.comparisonOutputs.map((output, i) => (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className={`text-xs font-mono ${
-                        output !== analysis.originalOutputs[i] ? 'text-amber-400' : 'text-zinc-300'
+                        output !== analysis.originalOutputs[i] ? 'text-amber-400' : 'text-foreground/80'
                       }`}
                     >
                       {output}
@@ -171,11 +171,11 @@ export function ComparisonPanel() {
             {/* Differences */}
             {analysis.differences.length > 0 && (
               <div className="space-y-1">
-                <div className="text-[10px] text-zinc-500">Differences</div>
+                <div className="text-[10px] text-muted-foreground">Differences</div>
                 {analysis.differences.map((diff, i) => (
-                  <Badge 
+                  <Badge
                     key={i}
-                    variant="outline" 
+                    variant="outline"
                     className="mr-1 border-amber-500/30 text-amber-400 text-[10px]"
                   >
                     {diff.description}
@@ -186,14 +186,14 @@ export function ComparisonPanel() {
 
             {/* Metrics Comparison */}
             <div className="grid grid-cols-2 gap-2 text-[10px]">
-              <div className="bg-zinc-800/50 rounded p-2">
-                <div className="text-zinc-500 mb-1">Original</div>
+              <div className="bg-muted/50 rounded p-2 text-foreground">
+                <div className="text-muted-foreground mb-1">Original</div>
                 <div>Microtasks: {analysis.originalOps.microtasks}</div>
                 <div>Macrotasks: {analysis.originalOps.macrotasks}</div>
                 <div>Steps: {executionSteps.length}</div>
               </div>
-              <div className="bg-zinc-800/50 rounded p-2">
-                <div className="text-zinc-500 mb-1">Comparison</div>
+              <div className="bg-muted/50 rounded p-2 text-foreground">
+                <div className="text-muted-foreground mb-1">Comparison</div>
                 <div>Microtasks: {analysis.comparisonOps.microtasks}</div>
                 <div>Macrotasks: {analysis.comparisonOps.macrotasks}</div>
                 <div>Steps: {comparisonSteps.length}</div>
