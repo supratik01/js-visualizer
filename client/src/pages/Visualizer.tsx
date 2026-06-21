@@ -12,6 +12,7 @@ import { ComparisonPanel } from "@/components/ComparisonPanel";
 import { MemoryVisualization } from "@/components/memory/MemoryVisualization";
 import { ExplanationPanel } from "@/components/ExplanationPanel";
 import { VariableStatePanel } from "@/components/VariableStatePanel";
+import { MorphLayer } from "@/components/MorphLayer";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRuntimeStore, type ExecutionStep } from "@/lib/runtimeStore";
 import { parseAndSimulate } from "@/lib/executionEngine";
@@ -344,6 +345,7 @@ export function Visualizer() {
     >
       <MobileWarning />
       <OnboardingDialog />
+      <MorphLayer />
       <FeedbackButton />
       <CookieConsent />
 

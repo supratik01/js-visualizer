@@ -59,7 +59,10 @@ export function CallStack() {
                         key={frame.id}
                         layout="position"
                         variants={stackFrameVariants}
-                        initial="initial"
+                        /* Frames arriving from a queue (morphId set) are flown in by the
+                           MorphLayer ghost, so they skip their own entry spring and appear
+                           at rest — this also lets MorphLayer measure an undistorted target rect. */
+                        initial={frame.morphId ? false : 'initial'}
                         animate="animate"
                         exit="exit"
                         transition={spring.pop}
@@ -67,6 +70,8 @@ export function CallStack() {
                         className={`bg-[hsl(var(--app-panel-item))] rounded-md px-3 py-2.5 font-mono text-sm text-foreground border ${
                           isTop ? 'border-orange-500/50 ring-1 ring-orange-500/30' : 'border-zinc-600'
                         }`}
+                        data-morph-id={frame.morphId}
+                        data-morph-panel="stack"
                         data-testid={`callstack-frame-${frame.id}`}
                         title={frame.sourceInfo || ''}
                       >

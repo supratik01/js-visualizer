@@ -12,6 +12,8 @@ export interface StackFrame {
   executionPhase?: 'sync' | 'await-pending' | 'resumed';
   asyncStackTrace?: AsyncStackFrame[];
   parentFrameId?: string;
+  /** Shared identity that links this frame to the Web API / queue item it came from (for morph animations). */
+  morphId?: string;
 }
 
 export interface AsyncStackFrame {
@@ -123,6 +125,8 @@ export interface WebAPIItem {
   targetQueue?: 'task' | 'microtask';
   createdAt?: number;
   statusDetail?: string;
+  /** Shared identity linking this Web API entry to its queue item / resulting stack frame (for morph animations). */
+  morphId?: string;
 }
 
 export interface QueueItem {
@@ -135,6 +139,8 @@ export interface QueueItem {
   priority?: number;
   promiseState?: string;
   detail?: string;
+  /** Shared identity linking this queue item to its Web API entry / resulting stack frame (for morph animations). */
+  morphId?: string;
 }
 
 export interface ConsoleEntry {

@@ -76,6 +76,8 @@ export function MicrotaskQueue() {
                               ? 'border-cyan-500/30' 
                               : 'border-zinc-600'
                         } min-w-[120px] max-w-[180px]`}
+                        data-morph-id={task.morphId}
+                        data-morph-panel="micro"
                         data-testid={`microtask-item-${index}`}
                         title={task.detail || `Microtask from ${task.source || 'unknown'}`}
                       >

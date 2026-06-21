@@ -44,6 +44,8 @@ interface PendingMicrotask {
   assignTo?: string;
   asyncPromiseId?: string;
   closureVars?: Map<string, any>;
+  /** Shared identity linking the microtask's queue item to the stack frame it becomes (morph animations). */
+  morphId?: string;
   // Async resume that originated from `await X` inside `try { ... } catch(e) { ... } finally { ... }`.
   // When set, the resume routes a rejection through the catch handler instead of throwing past it.
   awaitTryContext?: {
@@ -69,6 +71,12 @@ interface PendingMacrotask {
   apiName: string;
   fetchPromiseId?: string;
   fetchResponse?: any;
+  /** Shared identity linking the Web API entry + queue item to the stack frame it becomes (morph animations). */
+  morphId?: string;
+  /** Display name for the Task Queue card, emitted when the timer expires into the queue. */
+  queueName?: string;
+  /** Set once the timer has "expired" and the callback has been moved into the Task Queue. */
+  expired?: boolean;
 }
 
 interface ExecutionContext {
@@ -577,9 +585,10 @@ function rejectPromise(ctx: ExecutionContext, promiseId: string, error: any): vo
 function scheduleMicrotask(ctx: ExecutionContext, task: PendingMicrotask): void {
   const name = task.isAsyncResume ? `${task.asyncFuncName} (resume)` :
     task.isFinallyPassThrough ? 'Promise.finally' : 'Promise.then';
+  if (!task.morphId) task.morphId = generateId();
   ctx.steps.push({
     type: 'add-microtask', line: task.line,
-    data: { id: task.id, name, callback: task.callbackStr, line: task.line } as QueueItem,
+    data: { id: task.id, name, callback: task.callbackStr, line: task.line, morphId: task.morphId } as QueueItem,
   });
   ctx.pendingMicrotasks.push(task);
 }
@@ -3255,6 +3264,7 @@ function processSetTimeout(node: any, ctx: ExecutionContext, line: number): numb
 
   const webApiId = generateId();
   const taskId = generateId();
+  const morphId = generateId();
 
   ctx.steps.push({ type: 'highlight-line', line, data: { line } });
   emitExplanation(ctx, line, {
@@ -3266,16 +3276,15 @@ function processSetTimeout(node: any, ctx: ExecutionContext, line: number): numb
   });
   ctx.steps.push({
     type: 'add-webapi', line,
-    data: { id: webApiId, name: `setTimeout(${delay}ms)`, type: 'setTimeout' as const, delay, remaining: delay, callback: callbackStr } as WebAPIItem,
-  });
-  ctx.steps.push({
-    type: 'add-task', line,
-    data: { id: taskId, name: 'setTimeout callback', callback: callbackStr, line } as QueueItem,
+    data: { id: webApiId, name: `setTimeout(${delay}ms)`, type: 'setTimeout' as const, delay, remaining: delay, callback: callbackStr, morphId } as WebAPIItem,
   });
 
+  // The callback waits in the Web API (timer) environment. It is moved into the
+  // Task Queue only when the timer expires — see expireReadyTimers().
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
-    callbackStr, params, args: [], delay, webApiId,
+    callbackStr, params, args: [], delay, webApiId, morphId,
+    queueName: 'setTimeout callback',
     closureVars: new Map(ctx.variables), apiName: `setTimeout(${delay}ms)`,
   });
 
@@ -3292,20 +3301,18 @@ function processSetInterval(node: any, ctx: ExecutionContext, line: number): num
 
   const webApiId = generateId();
   const taskId = generateId();
+  const morphId = generateId();
 
   ctx.steps.push({ type: 'highlight-line', line, data: { line } });
   ctx.steps.push({
     type: 'add-webapi', line,
-    data: { id: webApiId, name: `setInterval(${delay}ms)`, type: 'setInterval' as const, delay, remaining: delay, callback: callbackStr } as WebAPIItem,
-  });
-  ctx.steps.push({
-    type: 'add-task', line,
-    data: { id: taskId, name: 'setInterval callback', callback: callbackStr, line } as QueueItem,
+    data: { id: webApiId, name: `setInterval(${delay}ms)`, type: 'setInterval' as const, delay, remaining: delay, callback: callbackStr, morphId } as WebAPIItem,
   });
 
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
-    callbackStr, params, args: [], delay, webApiId,
+    callbackStr, params, args: [], delay, webApiId, morphId,
+    queueName: 'setInterval callback',
     closureVars: new Map(ctx.variables), apiName: `setInterval(${delay}ms)`,
   });
 
@@ -3328,15 +3335,16 @@ function processQueueMicrotask(node: any, ctx: ExecutionContext, line: number): 
     category: 'event-loop',
   });
 
+  const morphId = generateId();
   const task: PendingMicrotask = {
     id: taskId, body, line: getNodeLine(callback) || line,
     callbackStr, params, args: [],
-    closureVars: new Map(ctx.variables),
+    closureVars: new Map(ctx.variables), morphId,
   };
 
   ctx.steps.push({
     type: 'add-microtask', line,
-    data: { id: taskId, name: 'queueMicrotask', callback: callbackStr, line } as QueueItem,
+    data: { id: taskId, name: 'queueMicrotask', callback: callbackStr, line, morphId } as QueueItem,
   });
   ctx.pendingMicrotasks.push(task);
 }
@@ -3349,20 +3357,18 @@ function processRAF(node: any, ctx: ExecutionContext, line: number): number {
 
   const webApiId = generateId();
   const taskId = generateId();
+  const morphId = generateId();
 
   ctx.steps.push({ type: 'highlight-line', line, data: { line } });
   ctx.steps.push({
     type: 'add-webapi', line,
-    data: { id: webApiId, name: 'requestAnimationFrame', type: 'event' as const, delay: 16, remaining: 16, callback: callbackStr } as WebAPIItem,
-  });
-  ctx.steps.push({
-    type: 'add-task', line,
-    data: { id: taskId, name: 'rAF callback', callback: callbackStr, line } as QueueItem,
+    data: { id: webApiId, name: 'requestAnimationFrame', type: 'event' as const, delay: 16, remaining: 16, callback: callbackStr, morphId } as WebAPIItem,
   });
 
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
-    callbackStr, params, args: [16.67], delay: 16, webApiId,
+    callbackStr, params, args: [16.67], delay: 16, webApiId, morphId,
+    queueName: 'rAF callback',
     closureVars: new Map(ctx.variables), apiName: 'requestAnimationFrame',
   });
 
@@ -3377,20 +3383,18 @@ function processRIC(node: any, ctx: ExecutionContext, line: number): number {
 
   const webApiId = generateId();
   const taskId = generateId();
+  const morphId = generateId();
 
   ctx.steps.push({ type: 'highlight-line', line, data: { line } });
   ctx.steps.push({
     type: 'add-webapi', line,
-    data: { id: webApiId, name: 'requestIdleCallback', type: 'event' as const, delay: 50, remaining: 50, callback: callbackStr } as WebAPIItem,
-  });
-  ctx.steps.push({
-    type: 'add-task', line,
-    data: { id: taskId, name: 'rIC callback', callback: callbackStr, line } as QueueItem,
+    data: { id: webApiId, name: 'requestIdleCallback', type: 'event' as const, delay: 50, remaining: 50, callback: callbackStr, morphId } as WebAPIItem,
   });
 
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
-    callbackStr, params, args: [{ timeRemaining: () => 49, didTimeout: false }], delay: 50, webApiId,
+    callbackStr, params, args: [{ timeRemaining: () => 49, didTimeout: false }], delay: 50, webApiId, morphId,
+    queueName: 'rIC callback',
     closureVars: new Map(ctx.variables), apiName: 'requestIdleCallback',
   });
 
@@ -3403,15 +3407,12 @@ function processFetch(node: any, ctx: ExecutionContext, line: number): any {
   const promiseId = createPromise(ctx);
   const webApiId = generateId();
   const taskId = generateId();
+  const morphId = generateId();
 
   ctx.steps.push({ type: 'highlight-line', line, data: { line } });
   ctx.steps.push({
     type: 'add-webapi', line,
-    data: { id: webApiId, name: `fetch(${url})`, type: 'fetch' as const, delay: 200, remaining: 200, callback: 'fetch response' } as WebAPIItem,
-  });
-  ctx.steps.push({
-    type: 'add-task', line,
-    data: { id: taskId, name: 'fetch response', callback: 'fetch callback', line } as QueueItem,
+    data: { id: webApiId, name: `fetch(${url})`, type: 'fetch' as const, delay: 200, remaining: 200, callback: 'fetch response', morphId } as WebAPIItem,
   });
 
   const responseObj = {
@@ -3421,7 +3422,8 @@ function processFetch(node: any, ctx: ExecutionContext, line: number): any {
 
   ctx.pendingMacrotasks.push({
     id: taskId, body: null, line, callbackStr: 'fetch response',
-    params: [], args: [], delay: 200, webApiId,
+    params: [], args: [], delay: 200, webApiId, morphId,
+    queueName: 'fetch response',
     closureVars: new Map(ctx.variables), apiName: `fetch(${url})`,
     fetchPromiseId: promiseId, fetchResponse: responseObj,
   });
@@ -5035,7 +5037,7 @@ function processMicrotaskCallback(task: PendingMicrotask, ctx: ExecutionContext)
   ctx.steps.push({ type: 'remove-microtask', data: { id: task.id } });
   ctx.steps.push({
     type: 'push-stack', line,
-    data: { id: generateId(), name: task.callbackStr || 'microtask', line, type: 'callback' as const } as StackFrame,
+    data: { id: generateId(), name: task.callbackStr || 'microtask', line, type: 'callback' as const, morphId: task.morphId } as StackFrame,
   });
 
   if (task.isFinallyPassThrough) {
@@ -5073,7 +5075,7 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
   ctx.steps.push({ type: 'remove-microtask', data: { id: task.id } });
   ctx.steps.push({
     type: 'push-stack', line,
-    data: { id: generateId(), name: `${task.asyncFuncName} (resumed)`, line, type: 'callback' as const } as StackFrame,
+    data: { id: generateId(), name: `${task.asyncFuncName} (resumed)`, line, type: 'callback' as const, morphId: task.morphId } as StackFrame,
   });
 
   if (task.closureVars) {
@@ -5199,7 +5201,7 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
 function processMacrotaskCallback(task: PendingMacrotask, ctx: ExecutionContext): void {
   const line = task.line;
 
-  ctx.steps.push({ type: 'remove-webapi', data: { id: task.webApiId } });
+  // The Web API entry was already removed when the timer expired (expireReadyTimers).
   ctx.steps.push({ type: 'remove-task', data: { id: task.id } });
 
   if (task.fetchPromiseId) {
@@ -5211,12 +5213,33 @@ function processMacrotaskCallback(task: PendingMacrotask, ctx: ExecutionContext)
 
   ctx.steps.push({
     type: 'push-stack', line,
-    data: { id: generateId(), name: task.callbackStr || task.apiName || 'task callback', line, type: 'callback' as const } as StackFrame,
+    data: { id: generateId(), name: task.callbackStr || task.apiName || 'task callback', line, type: 'callback' as const, morphId: task.morphId } as StackFrame,
   });
 
   executeCallbackBody(task.body, ctx, task.params, task.args, task.closureVars);
 
   ctx.steps.push({ type: 'pop-stack', line, data: {} });
+}
+
+/**
+ * Move any pending timers whose callback is still waiting in the Web API
+ * environment into the Task Queue ("the timer expired"). Emitted as a
+ * remove-webapi → add-task pair per timer so the MorphLayer can fly the card
+ * from the Web APIs panel into the Task Queue. Timers registered later (inside a
+ * callback) are expired on the next event-loop turn.
+ */
+function expireReadyTimers(ctx: ExecutionContext): void {
+  const ready = ctx.pendingMacrotasks
+    .filter((t) => !t.expired)
+    .sort((a, b) => a.delay - b.delay);
+  ready.forEach((t) => {
+    t.expired = true;
+    ctx.steps.push({ type: 'remove-webapi', data: { id: t.webApiId } });
+    ctx.steps.push({
+      type: 'add-task', line: t.line,
+      data: { id: t.id, name: t.queueName || 'task callback', callback: t.callbackStr, line: t.line, morphId: t.morphId } as QueueItem,
+    });
+  });
 }
 
 function simulateEventLoop(ctx: ExecutionContext): void {
@@ -5226,6 +5249,10 @@ function simulateEventLoop(ctx: ExecutionContext): void {
   while (safetyCounter < maxIterations && (ctx.pendingMicrotasks.length > 0 || ctx.pendingMacrotasks.length > 0)) {
     safetyCounter++;
     if (ctx.steps.length > ctx.stepLimit) break;
+
+    // Expired timers hand their callbacks to the Task Queue before the loop
+    // drains microtasks and processes a macrotask.
+    expireReadyTimers(ctx);
 
     // Drain all microtasks first (per spec: all microtasks before next macrotask)
     if (ctx.pendingMicrotasks.length > 0) {

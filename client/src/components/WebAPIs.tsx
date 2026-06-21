@@ -61,6 +61,8 @@ export function WebAPIs() {
                         exit={{ opacity: 0, scale: 0.85, x: 50 }}
                         transition={spring.pop}
                         className="bg-[hsl(var(--app-panel-item))] rounded-md px-3 py-2.5 font-mono text-sm text-foreground border border-zinc-600 overflow-hidden"
+                        data-morph-id={api.morphId}
+                        data-morph-panel="webapi"
                         data-testid={`webapi-item-${api.id}`}
                         title={api.statusDetail || `Will queue to ${api.targetQueue || 'task'} queue`}
                       >

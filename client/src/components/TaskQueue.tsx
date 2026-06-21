@@ -51,6 +51,8 @@ export function TaskQueue() {
                               ? 'border-pink-500/30' 
                               : 'border-zinc-600'
                         } min-w-[120px] max-w-[180px]`}
+                        data-morph-id={task.morphId}
+                        data-morph-panel="task"
                         data-testid={`task-item-${index}`}
                         title={task.detail || `Macrotask from ${task.source || 'setTimeout'}`}
                       >
