@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRuntimeStore, type SerializedValue, type MemoryHeapObject } from '@/lib/runtimeStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +63,7 @@ function VariableRow({
   return (
     <div style={{ paddingLeft: depth > 0 ? `${depth * 12}px` : undefined }}>
       <motion.div
+        data-var-changed={changed ? 'true' : undefined}
         className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded text-xs font-mono ${
           changed ? 'bg-yellow-500/15' : ''
         }`}
@@ -180,6 +181,29 @@ export function VariableStatePanel() {
   const data = currentMemorySnapshotData;
   const prev = previousMemorySnapshotData;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // When variables overflow the panel, keep the variable that just changed in
+  // view so the user always sees the current step's effect.
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const id = requestAnimationFrame(() => {
+      const el = container.querySelector<HTMLElement>('[data-var-changed="true"]');
+      if (!el) return;
+      const c = container.getBoundingClientRect();
+      const e = el.getBoundingClientRect();
+      const margin = 12;
+      let delta = 0;
+      if (e.top < c.top + margin) delta = e.top - c.top - margin;
+      else if (e.bottom > c.bottom - margin) delta = e.bottom - c.bottom + margin;
+      if (delta !== 0) {
+        container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [currentMemorySnapshotData]);
+
   const totalVars = data
     ? Object.keys(data.globalVars).length + data.frames.reduce((sum, f) => sum + Object.keys(f.variables).length, 0)
     : 0;
@@ -197,7 +221,7 @@ export function VariableStatePanel() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-3 flex-1 overflow-y-auto min-h-0">
+      <CardContent ref={scrollRef} className="px-4 pb-3 flex-1 overflow-y-auto min-h-0">
         {!data ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 py-6">
             <Braces className="w-10 h-10 opacity-30" />
