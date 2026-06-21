@@ -62,7 +62,7 @@
   --radius: .5rem;
   /* App-specific panel backgrounds (light mode) — warm cream panels */
   --app-panel: 44 32% 99%;            /* near-white cream — clean canvas */
-  --app-panel-deep: 38 9.75% 22.12%;       /* slightly cooler cream — quiet depth */
+  --app-panel-deep: 38 30% 95%;       /* slightly cooler cream — quiet depth */
   --app-panel-item: 37 28% 96%;       /* hover/inset cream */
   --app-bar: 44 27% 98%;
   /* Panel label badge gradients — refined Claude tones (saturated enough for white text) */
