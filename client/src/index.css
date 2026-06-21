@@ -10,7 +10,7 @@
   --elevate-1: rgba(26, 22, 18, .03);
   --elevate-2: rgba(26, 22, 18, .07);
   /* Warm cream base — #FAF9F6 */
-  --background: 44 27% 97%;
+  --background: 44 33.9% 89.87%;
   /* Warm near-black text — #1A1612 */
   --foreground: 30 18% 9%;
   /* Warm gray border — #E8E0D5 */
@@ -62,7 +62,7 @@
   --radius: .5rem;
   /* App-specific panel backgrounds (light mode) — warm cream panels */
   --app-panel: 44 32% 99%;            /* near-white cream — clean canvas */
-  --app-panel-deep: 38 30% 95%;       /* slightly cooler cream — quiet depth */
+  --app-panel-deep: 38 9.75% 22.12%;       /* slightly cooler cream — quiet depth */
   --app-panel-item: 37 28% 96%;       /* hover/inset cream */
   --app-bar: 44 27% 98%;
   /* Panel label badge gradients — refined Claude tones (saturated enough for white text) */
@@ -372,7 +372,7 @@
 
 /* Zinc text → warm brown readable shades (Claude palette) */
 :root:not(.dark) .text-white {
-  color: hsl(30 18% 9%)
+  color: hsl(0 0% 100%)
 }
 
 :root:not(.dark) .text-zinc-100 {
