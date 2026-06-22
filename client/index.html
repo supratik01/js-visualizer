@@ -9,7 +9,7 @@
     <title>JS Visualizer — JavaScript Event Loop, Call Stack & Memory Tutorial</title>
     <meta name="title" content="JS Visualizer — JavaScript Event Loop, Call Stack & Memory Tutorial" />
     <meta name="description" content="Free interactive JavaScript visualizer. Step through code line-by-line and watch the call stack, Web APIs, microtask queue, event loop, and memory graph come to life. Master async/await, Promises, closures, and the JS runtime." />
-    <meta name="keywords" content="JavaScript visualizer, JS event loop, JavaScript call stack, microtask queue, task queue, async await visualizer, Promise visualizer, JavaScript runtime, JS memory visualization, JavaScript tutorial, learn JavaScript, JS playground, JavaScript debugger online, JavaScript execution simulator, V8 visualizer, Node.js event loop, browser event loop, web APIs visualization, JavaScript closures, JavaScript classes, generators, interactive coding tutorial, JavaScript animation, see code understand memory" />
+    <meta name="keywords" content="JavaScript visualizer, JS visualizer, online JavaScript visualizer, interactive JavaScript visualizer, free JavaScript visualizer, JavaScript code visualizer, JavaScript execution visualizer, visualize JavaScript code, see how JavaScript runs, JavaScript event loop, JS event loop, event loop visualizer, JavaScript event loop visualizer, how does the JavaScript event loop work, JavaScript call stack, call stack visualizer, call stack and event loop, microtask queue, macrotask queue, task queue, task queue visualizer, microtask vs macrotask, difference between microtask and macrotask, async await visualizer, async JavaScript visualizer, how async await works, Promise visualizer, JavaScript promises explained, why do promises run before setTimeout, setTimeout visualizer, how setTimeout works, callback queue, JavaScript runtime, JavaScript runtime visualizer, JavaScript execution simulator, JavaScript execution context, step through JavaScript code, JavaScript code stepper, JavaScript debugger online, online JS debugger, JavaScript playground, JS playground, run JavaScript online, web APIs visualization, browser web APIs, single-threaded JavaScript, non-blocking JavaScript, asynchronous JavaScript, JavaScript memory visualization, JavaScript memory graph, heap and stack JavaScript, JavaScript variable state, watch variables change JavaScript, JavaScript scope visualizer, JavaScript closures, closures explained, JavaScript classes, generators, JavaScript hoisting, this binding JavaScript, V8 visualizer, Node.js event loop, node event loop visualizer, browser event loop, learn JavaScript, learn async JavaScript, JavaScript tutorial, interactive coding tutorial, JavaScript animation, animated event loop, see code understand memory" />
     <meta name="author" content="Bytefront" />
     <meta name="application-name" content="JS Visualizer" />
     <meta name="generator" content="Vite + React + TypeScript" />
@@ -230,6 +230,30 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Yes. Paste any JavaScript snippet into the Monaco editor and click RUN. The visualizer steps through it, animating the call stack, queues, and memory graph as your code executes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the call stack in JavaScript?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The call stack is the data structure the JavaScript engine uses to track which function is currently running. When a function is called it's pushed onto the stack; when it returns it's popped off. Because JavaScript is single-threaded, only the function on top of the stack runs at any moment. JS Visualizer animates each push and pop so you can watch the stack grow and shrink as your code executes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why do Promise callbacks run before setTimeout?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Promise .then callbacks are microtasks, and the event loop drains the entire microtask queue after each task before it picks up the next macrotask like setTimeout. So even a setTimeout(fn, 0) callback waits until all pending Promise callbacks have run. JS Visualizer shows this by flying microtasks into the call stack before any timer callback, making the ordering obvious."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I step through JavaScript code line by line?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. JS Visualizer is an interactive step-through debugger: use Step to advance one operation at a time, set breakpoints, and control playback speed while you watch the call stack, Web APIs, task queue, microtask queue, variable state, and memory graph update live."
           }
         }
       ]
