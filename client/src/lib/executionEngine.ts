@@ -42,8 +42,14 @@ interface PendingMicrotask {
   asyncFuncName?: string;
   remainingStatements?: any[];
   assignTo?: string;
+  /** Full LHS pattern node for destructuring await assignments (ArrayPattern, ObjectPattern, Identifier). */
+  assignPattern?: any;
   asyncPromiseId?: string;
   closureVars?: Map<string, any>;
+  /** `this` binding at the point the async function suspended — restored on resume so class methods work correctly after await. */
+  savedThisBinding?: any;
+  /** Internal-only: native (non-AST) microtask callback, used by Promise combinators. No UI steps emitted. */
+  nativeFn?: () => void;
   /** Shared identity linking the microtask's queue item to the stack frame it becomes (morph animations). */
   morphId?: string;
   // Async resume that originated from `await X` inside `try { ... } catch(e) { ... } finally { ... }`.
@@ -77,6 +83,10 @@ interface PendingMacrotask {
   queueName?: string;
   /** Set once the timer has "expired" and the callback has been moved into the Task Queue. */
   expired?: boolean;
+  /** True when the callback is an arrow function — `this` must be restored lexically from `savedThisBinding`. */
+  callbackIsArrow?: boolean;
+  /** The `this` binding captured at registration time, used to restore lexical `this` for arrow function callbacks. */
+  savedThisBinding?: any;
 }
 
 interface ExecutionContext {
@@ -111,6 +121,10 @@ interface ExecutionContext {
   scopeStack: Array<{ bindings: Map<string, any>; kind: 'global' | 'function' | 'block' }>;
   // Label for the current loop (set by LabeledStatement wrapping a loop)
   _currentLoopLabel: string | null;
+  // var-declared variable names — these are function/global-scoped and must NOT be
+  // snapshot-captured into closureVars. Callbacks read them from live ctx.variables
+  // so they see the final post-loop value (the correct JS var semantics).
+  varBindings: Set<string>;
 }
 
 function getOrCreateHeapId(obj: any, ctx: ExecutionContext): string {
@@ -1612,7 +1626,10 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
 
     case 'ArrowFunctionExpression':
     case 'FunctionExpression':
-      return node;
+      // Snapshot closure variables at definition time so that outer function
+      // parameters (which get cleaned up on return) remain accessible when this
+      // function is called later.
+      return { ...node, __closureVars: makeClosureVars(ctx) };
 
     case 'ClassExpression': {
       // Treat like ClassDeclaration but return the node as value
@@ -3098,6 +3115,41 @@ function callFunction(funcNode: any, args: any[], name: string, ctx: ExecutionCo
       savedVarVals.push(ctx.variables.has(pName) ? ctx.variables.get(pName) : Symbol());
       ctx.variables.set(pName, args.slice(i));
       localVarNames.add(pName);
+    } else if (param.type === 'AssignmentPattern' && param.left?.type === 'ObjectPattern') {
+      // Destructured param with default: function({ a = 1, b } = {})
+      const rawArg = args[i] !== undefined ? args[i] : evaluateExpression(param.right, ctx);
+      const argVal = (rawArg && typeof rawArg === 'object') ? rawArg : {};
+      for (const prop of param.left.properties || []) {
+        if (prop.type === 'RestElement' && prop.argument?.type === 'Identifier') {
+          const restName = prop.argument.name;
+          const usedKeys = (param.left.properties || []).filter((p: any) => p.type !== 'RestElement').map((p: any) => p.key?.name || p.key?.value);
+          const rest: Record<string, any> = {};
+          for (const [k, v] of Object.entries(argVal)) {
+            if (!usedKeys.includes(k)) rest[k] = v;
+          }
+          savedVarKeys.push(restName);
+          savedVarVals.push(ctx.variables.has(restName) ? ctx.variables.get(restName) : Symbol());
+          ctx.variables.set(restName, rest);
+          localVarNames.add(restName);
+        } else {
+          const key = prop.key?.name || prop.key?.value;
+          let varName: string;
+          let defaultVal: any;
+          if (prop.value?.type === 'AssignmentPattern') {
+            varName = prop.value.left?.name || key;
+            defaultVal = prop.value.right;
+          } else {
+            varName = prop.value?.name || key;
+          }
+          if (varName) {
+            savedVarKeys.push(varName);
+            savedVarVals.push(ctx.variables.has(varName) ? ctx.variables.get(varName) : Symbol());
+            const val = argVal[key] !== undefined ? argVal[key] : (defaultVal ? evaluateExpression(defaultVal, ctx) : undefined);
+            ctx.variables.set(varName, val);
+            localVarNames.add(varName);
+          }
+        }
+      }
     } else if (param.type === 'AssignmentPattern') {
       // Default parameter: function(x = 5)
       const pName = param.left?.name || `param${i}`;
@@ -3192,6 +3244,21 @@ function callFunction(funcNode: any, args: any[], name: string, ctx: ExecutionCo
   }
   // Arrow functions: keep current ctx.thisBinding (lexical this)
 
+  // Restore outer-scope variables captured at function-definition time (closure snapshot).
+  // Only restores variables that are no longer present in ctx.variables — i.e. those that
+  // were cleaned up when the enclosing function returned (typically outer params).
+  // Variables that are still live in ctx.variables are left untouched so that changes
+  // made to them between definition and call are visible (by-reference closure semantics).
+  if (funcNode.__closureVars) {
+    for (const [k, v] of funcNode.__closureVars as Map<string, any>) {
+      if (!ctx.variables.has(k)) {
+        savedVarKeys.push(k);
+        savedVarVals.push(Symbol()); // absent → delete on cleanup
+        ctx.variables.set(k, v);
+      }
+    }
+  }
+
   ctx.hasReturned = false;
   ctx.returnValue = undefined;
   ctx.awaitSuspended = false;
@@ -3254,6 +3321,17 @@ function callFunction(funcNode: any, args: any[], name: string, ctx: ExecutionCo
   return result;
 }
 
+// Build a closure snapshot that excludes var-declared names. var variables are
+// function/global-scoped and shared by reference across all closures — callbacks
+// must read them from live ctx.variables at execution time, not from a frozen copy.
+function makeClosureVars(ctx: ExecutionContext): Map<string, any> {
+  const result = new Map<string, any>();
+  for (const [k, v] of ctx.variables) {
+    if (!ctx.varBindings.has(k)) result.set(k, v);
+  }
+  return result;
+}
+
 function processSetTimeout(node: any, ctx: ExecutionContext, line: number): number {
   let callback = resolveCallbackNode(node.arguments?.[0], ctx);
   const delayArg = node.arguments?.[1];
@@ -3281,11 +3359,13 @@ function processSetTimeout(node: any, ctx: ExecutionContext, line: number): numb
 
   // The callback waits in the Web API (timer) environment. It is moved into the
   // Task Queue only when the timer expires — see expireReadyTimers().
+  const callbackIsArrow = callback?.type === 'ArrowFunctionExpression';
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
     callbackStr, params, args: [], delay, webApiId, morphId,
     queueName: 'setTimeout callback',
-    closureVars: new Map(ctx.variables), apiName: `setTimeout(${delay}ms)`,
+    closureVars: makeClosureVars(ctx), apiName: `setTimeout(${delay}ms)`,
+    callbackIsArrow, savedThisBinding: callbackIsArrow ? ctx.thisBinding : undefined,
   });
 
   return timerCounter++;
@@ -3309,11 +3389,13 @@ function processSetInterval(node: any, ctx: ExecutionContext, line: number): num
     data: { id: webApiId, name: `setInterval(${delay}ms)`, type: 'setInterval' as const, delay, remaining: delay, callback: callbackStr, morphId } as WebAPIItem,
   });
 
+  const intervalCallbackIsArrow = callback?.type === 'ArrowFunctionExpression';
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
     callbackStr, params, args: [], delay, webApiId, morphId,
     queueName: 'setInterval callback',
-    closureVars: new Map(ctx.variables), apiName: `setInterval(${delay}ms)`,
+    closureVars: makeClosureVars(ctx), apiName: `setInterval(${delay}ms)`,
+    callbackIsArrow: intervalCallbackIsArrow, savedThisBinding: intervalCallbackIsArrow ? ctx.thisBinding : undefined,
   });
 
   return timerCounter++;
@@ -3339,7 +3421,7 @@ function processQueueMicrotask(node: any, ctx: ExecutionContext, line: number): 
   const task: PendingMicrotask = {
     id: taskId, body, line: getNodeLine(callback) || line,
     callbackStr, params, args: [],
-    closureVars: new Map(ctx.variables), morphId,
+    closureVars: makeClosureVars(ctx), morphId,
   };
 
   ctx.steps.push({
@@ -3365,11 +3447,13 @@ function processRAF(node: any, ctx: ExecutionContext, line: number): number {
     data: { id: webApiId, name: 'requestAnimationFrame', type: 'event' as const, delay: 16, remaining: 16, callback: callbackStr, morphId } as WebAPIItem,
   });
 
+  const rafIsArrow = callback?.type === 'ArrowFunctionExpression';
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
     callbackStr, params, args: [16.67], delay: 16, webApiId, morphId,
     queueName: 'rAF callback',
-    closureVars: new Map(ctx.variables), apiName: 'requestAnimationFrame',
+    closureVars: makeClosureVars(ctx), apiName: 'requestAnimationFrame',
+    callbackIsArrow: rafIsArrow, savedThisBinding: rafIsArrow ? ctx.thisBinding : undefined,
   });
 
   return timerCounter++;
@@ -3391,11 +3475,13 @@ function processRIC(node: any, ctx: ExecutionContext, line: number): number {
     data: { id: webApiId, name: 'requestIdleCallback', type: 'event' as const, delay: 50, remaining: 50, callback: callbackStr, morphId } as WebAPIItem,
   });
 
+  const ricIsArrow = callback?.type === 'ArrowFunctionExpression';
   ctx.pendingMacrotasks.push({
     id: taskId, body, line: getNodeLine(callback) || line,
     callbackStr, params, args: [{ timeRemaining: () => 49, didTimeout: false }], delay: 50, webApiId, morphId,
     queueName: 'rIC callback',
-    closureVars: new Map(ctx.variables), apiName: 'requestIdleCallback',
+    closureVars: makeClosureVars(ctx), apiName: 'requestIdleCallback',
+    callbackIsArrow: ricIsArrow, savedThisBinding: ricIsArrow ? ctx.thisBinding : undefined,
   });
 
   return timerCounter++;
@@ -3424,11 +3510,22 @@ function processFetch(node: any, ctx: ExecutionContext, line: number): any {
     id: taskId, body: null, line, callbackStr: 'fetch response',
     params: [], args: [], delay: 200, webApiId, morphId,
     queueName: 'fetch response',
-    closureVars: new Map(ctx.variables), apiName: `fetch(${url})`,
+    closureVars: makeClosureVars(ctx), apiName: `fetch(${url})`,
     fetchPromiseId: promiseId, fetchResponse: responseObj,
   });
 
   return { __promiseId: promiseId };
+}
+
+// Schedule a non-AST microtask (e.g., Promise.all's per-element resolution step).
+// These appear in the same FIFO queue as AST microtasks so ordering is correct.
+// No UI cards are shown for them — they're internal plumbing, not user callbacks.
+function scheduleNativeMicrotask(ctx: ExecutionContext, fn: () => void): void {
+  ctx.pendingMicrotasks.push({
+    id: generateId(), body: null, line: 0,
+    callbackStr: '', params: [], args: [],
+    nativeFn: fn,
+  });
 }
 
 function processPromiseCombinator(type: string, arrNode: any, ctx: ExecutionContext, line: number): any {
@@ -3475,8 +3572,12 @@ function processPromiseCombinator(type: string, arrNode: any, ctx: ExecutionCont
           rejected = true;
           rejectPromise(ctx, resultPromiseId, error);
         };
-        if (p.state === 'resolved') onRes(p.value);
-        else if (p.state === 'rejected') onRej(p.error);
+        // Use scheduleNativeMicrotask so already-resolved inputs go through the
+        // microtask queue rather than firing synchronously. This preserves the
+        // correct ordering: other microtasks scheduled after Promise.all() but
+        // before the continuation appear before the continuation, matching real JS.
+        if (p.state === 'resolved') scheduleNativeMicrotask(ctx, () => onRes(p.value));
+        else if (p.state === 'rejected') scheduleNativeMicrotask(ctx, () => onRej(p.error));
         else { p.onResolve.push(onRes); p.onReject.push(onRej); }
       }
       break;
@@ -3488,8 +3589,8 @@ function processPromiseCombinator(type: string, arrNode: any, ctx: ExecutionCont
         if (!p) continue;
         const onRes = (value: any) => { if (!settled) { settled = true; resolvePromise(ctx, resultPromiseId, value); } };
         const onRej = (error: any) => { if (!settled) { settled = true; rejectPromise(ctx, resultPromiseId, error); } };
-        if (p.state === 'resolved') { onRes(p.value); break; }
-        if (p.state === 'rejected') { onRej(p.error); break; }
+        if (p.state === 'resolved') { scheduleNativeMicrotask(ctx, () => onRes(p.value)); break; }
+        if (p.state === 'rejected') { scheduleNativeMicrotask(ctx, () => onRej(p.error)); break; }
         p.onResolve.push(onRes); p.onReject.push(onRej);
       }
       break;
@@ -3508,8 +3609,8 @@ function processPromiseCombinator(type: string, arrNode: any, ctx: ExecutionCont
           errors[idx] = error; rejectedCount++;
           if (rejectedCount === promiseIds.length) rejectPromise(ctx, resultPromiseId, { type: 'AggregateError', errors });
         };
-        if (p.state === 'resolved') { onRes(p.value); break; }
-        else if (p.state === 'rejected') { onRej(p.error); }
+        if (p.state === 'resolved') { scheduleNativeMicrotask(ctx, () => onRes(p.value)); break; }
+        else if (p.state === 'rejected') { scheduleNativeMicrotask(ctx, () => onRej(p.error)); }
         else { p.onResolve.push(onRes); p.onReject.push(onRej); }
       }
       break;
@@ -3529,8 +3630,8 @@ function processPromiseCombinator(type: string, arrNode: any, ctx: ExecutionCont
           results[idx] = { status: 'rejected', reason: error }; settledCount++;
           if (settledCount === promiseIds.length) resolvePromise(ctx, resultPromiseId, results);
         };
-        if (p.state === 'resolved') onRes(p.value);
-        else if (p.state === 'rejected') onRej(p.error);
+        if (p.state === 'resolved') scheduleNativeMicrotask(ctx, () => onRes(p.value));
+        else if (p.state === 'rejected') scheduleNativeMicrotask(ctx, () => onRej(p.error));
         else { p.onResolve.push(onRes); p.onReject.push(onRej); }
       }
       break;
@@ -4127,6 +4228,7 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
   const line = getNodeLine(stmt);
   let awaitedValue: any;
   let assignTo: string | undefined;
+  let assignPattern: any = undefined; // full LHS node for destructuring
   let isReturn = false;
 
   // Recursive descent through statements that *contain* an await, but aren't themselves
@@ -4168,7 +4270,11 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
     if (expr.type === 'AwaitExpression') {
       awaitedValue = evaluateExpression(expr.argument, ctx);
     } else if (expr.type === 'AssignmentExpression' && expr.right?.type === 'AwaitExpression') {
-      assignTo = expr.left?.type === 'Identifier' ? expr.left.name : undefined;
+      if (expr.left?.type === 'Identifier') {
+        assignTo = expr.left.name;
+      } else {
+        assignPattern = expr.left; // destructuring assignment: [a, b] = await ...
+      }
       awaitedValue = evaluateExpression(expr.right.argument, ctx);
     } else {
       const awaitArg = findAwaitArgument(expr);
@@ -4177,7 +4283,11 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
     }
   } else if (stmt.type === 'VariableDeclaration') {
     const decl = stmt.declarations[0];
-    assignTo = decl.id?.type === 'Identifier' ? decl.id.name : undefined;
+    if (decl.id?.type === 'Identifier') {
+      assignTo = decl.id.name;
+    } else {
+      assignPattern = decl.id; // destructuring: const [a, b] = await ... / const { x } = await ...
+    }
     if (decl.init?.type === 'AwaitExpression') {
       awaitedValue = evaluateExpression(decl.init.argument, ctx);
     } else {
@@ -4211,7 +4321,8 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
 
   const asyncFuncName = ctx.currentAsyncFuncName!;
   const asyncPromiseId = ctx.currentAsyncPromiseId!;
-  const closureVars = new Map(ctx.variables);
+  const closureVars = makeClosureVars(ctx);
+  const savedThisBinding = ctx.thisBinding;
 
   if (isReturn) {
     remainingStmts = [];
@@ -4224,8 +4335,10 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
       callbackStr: `${asyncFuncName} (after await)`,
       params: [], args: [value],
       isAsyncResume: true, asyncFuncName,
-      remainingStatements: remainingStmts, assignTo: isReturn ? undefined : assignTo,
-      asyncPromiseId, closureVars,
+      remainingStatements: remainingStmts,
+      assignTo: isReturn ? undefined : assignTo,
+      assignPattern: isReturn ? undefined : assignPattern,
+      asyncPromiseId, closureVars, savedThisBinding,
       awaitTryContext, awaitWasRejection: isRejection,
     };
     if (isReturn && !isRejection) {
@@ -4236,7 +4349,7 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
         params: [], args: [value],
         isAsyncResume: true, asyncFuncName,
         remainingStatements: [],
-        asyncPromiseId, closureVars: new Map(),
+        asyncPromiseId, closureVars: new Map(), savedThisBinding,
       };
       scheduleMicrotask(ctx, returnCont);
     } else {
@@ -4369,6 +4482,7 @@ function processNode(node: any, ctx: ExecutionContext): void {
           // Phase 1B: Remove from TDZ when let/const is actually declared
           ctx.tdzBindings.delete(name);
           ctx.variables.set(name, val);
+          if (node.kind === 'var') ctx.varBindings.add(name);
           if (node.kind === 'const') ctx.constBindings.add(name);
           if (currentFrame) currentFrame.localVarNames.add(name);
         } else {
@@ -5089,6 +5203,11 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
   const savedAwaitSuspended = ctx.awaitSuspended;
   const savedHasThrown = ctx.hasThrown;
   const savedThrownError = ctx.thrownError;
+  const savedThisBindingOuter = ctx.thisBinding;
+
+  // Restore the `this` binding that was active when the async function suspended.
+  // Without this, class methods lose their instance reference after every `await`.
+  if (task.savedThisBinding !== undefined) ctx.thisBinding = task.savedThisBinding;
 
   ctx.currentAsyncFuncName = task.asyncFuncName;
   ctx.currentAsyncPromiseId = task.asyncPromiseId;
@@ -5123,8 +5242,9 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
       }
     } else {
       // Resolution path: assign awaited value, then run the rest of the try block.
-      if (task.assignTo && task.args.length > 0) {
-        ctx.variables.set(task.assignTo, task.args[0]);
+      if (task.args.length > 0) {
+        if (task.assignPattern) bindPattern(task.assignPattern, task.args[0], ctx);
+        else if (task.assignTo) ctx.variables.set(task.assignTo, task.args[0]);
       }
       if (tc.restOfTry && tc.restOfTry.length > 0) {
         processBody(tc.restOfTry, ctx);
@@ -5168,8 +5288,9 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
     if (task.awaitWasRejection) {
       ctx.hasThrown = true;
       ctx.thrownError = task.args[0];
-    } else if (task.assignTo && task.args.length > 0) {
-      ctx.variables.set(task.assignTo, task.args[0]);
+    } else if (task.args.length > 0) {
+      if (task.assignPattern) bindPattern(task.assignPattern, task.args[0], ctx);
+      else if (task.assignTo) ctx.variables.set(task.assignTo, task.args[0]);
     }
     if (!ctx.hasThrown && task.remainingStatements && task.remainingStatements.length > 0) {
       processBody(task.remainingStatements, ctx);
@@ -5188,6 +5309,7 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
   ctx.awaitSuspended = savedAwaitSuspended;
   ctx.hasThrown = savedHasThrown;
   ctx.thrownError = savedThrownError;
+  ctx.thisBinding = savedThisBindingOuter;
 
   if (!wasSuspended) {
     ctx.steps.push({ type: 'pop-stack', line, data: {} });
@@ -5216,7 +5338,10 @@ function processMacrotaskCallback(task: PendingMacrotask, ctx: ExecutionContext)
     data: { id: generateId(), name: task.callbackStr || task.apiName || 'task callback', line, type: 'callback' as const, morphId: task.morphId } as StackFrame,
   });
 
+  const savedThisForMacro = ctx.thisBinding;
+  if (task.callbackIsArrow && task.savedThisBinding !== undefined) ctx.thisBinding = task.savedThisBinding;
   executeCallbackBody(task.body, ctx, task.params, task.args, task.closureVars);
+  ctx.thisBinding = savedThisForMacro;
 
   ctx.steps.push({ type: 'pop-stack', line, data: {} });
 }
@@ -5270,7 +5395,10 @@ function simulateEventLoop(ctx: ExecutionContext): void {
       ctx.steps.push({ type: 'event-loop-phase', data: { phase: 'processing-microtask' } });
 
       const task = ctx.pendingMicrotasks.shift()!;
-      if (task.isAsyncResume) {
+      if (task.nativeFn) {
+        // Internal (non-AST) microtask — no UI steps, just execute the function.
+        task.nativeFn();
+      } else if (task.isAsyncResume) {
         processAsyncResumeMicrotask(task, ctx);
       } else {
         processMicrotaskCallback(task, ctx);
@@ -5338,6 +5466,7 @@ export function parseAndSimulate(code: string): ExecutionStep[] {
     thisBinding: { __type: 'globalThis' },
     scopeStack: [{ bindings: new Map(), kind: 'global' }],
     _currentLoopLabel: null,
+    varBindings: new Set(),
   };
 
   // === HOISTING PASS ===
@@ -5366,6 +5495,7 @@ export function parseAndSimulate(code: string): ExecutionStep[] {
       for (const decl of node.declarations) {
         if (decl.id?.type === 'Identifier') {
           ctx.variables.set(decl.id.name, undefined);
+          ctx.varBindings.add(decl.id.name);
           if (!hasHoistedItems) {
             emitExplanation(ctx, 1, {
               title: 'Creation Phase — Hoisting',

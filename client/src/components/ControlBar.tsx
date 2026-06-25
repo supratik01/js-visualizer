@@ -7,8 +7,12 @@ import {
   Lightbulb,
   MapPin,
   Sun, Moon,
-  Braces
+  Braces,
+  FileUp,
+  Newspaper,
+  HelpCircle,
 } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -31,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { useRuntimeStore } from '@/lib/runtimeStore';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ExamplesControlPanel } from '@/components/ExamplesControlPanel';
 import { ProductHuntBadge } from '@/components/ProductHuntBadge';
@@ -40,8 +44,12 @@ import {
   trackRunClicked, trackStepClicked, trackResetClicked,
   trackExampleLoaded, trackManageExamplesOpened,
   trackPanelToggled, trackShareClicked, trackTourStarted,
-  trackSpeedChanged,
+  trackSpeedChanged, trackFileImported,
 } from '@/lib/analytics';
+
+// Accepted source extensions and the max file size we'll load into the editor.
+const IMPORT_EXTENSIONS = ['.js', '.mjs', '.cjs', '.jsx'];
+const MAX_IMPORT_BYTES = 100 * 1024; // 100 KB — keeps the step simulation responsive
 
 interface ControlBarProps {
   onRun: () => void;
@@ -62,16 +70,61 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
     customExamples, customCategoryLabels,
   } = useRuntimeStore();
 
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [showManageExamples, setShowManageExamples] = useState(false);
   const [shareLink, setShareLink] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExampleSelect = (code: string, title: string, category: string) => {
     reset();
     setCode(code);
     trackExampleLoaded(title, category);
   };
+
+  const handleImportFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      // Reset the input so importing the same file twice still fires onChange.
+      e.target.value = '';
+      if (!file) return;
+
+      const name = file.name.toLowerCase();
+      const isJs = IMPORT_EXTENSIONS.some((ext) => name.endsWith(ext));
+      if (!isJs) {
+        toast({
+          title: 'Unsupported file',
+          description: 'Please import a JavaScript file (.js, .mjs, .cjs, or .jsx). TypeScript isn’t supported yet.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (file.size > MAX_IMPORT_BYTES) {
+        toast({
+          title: 'File too large',
+          description: `Files must be under ${Math.round(MAX_IMPORT_BYTES / 1024)} KB so the step-through stays responsive.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        if (!text.trim()) {
+          toast({ title: 'Empty file', description: 'That file has no code to visualize.', variant: 'destructive' });
+          return;
+        }
+        reset();
+        setCode(text);
+        trackFileImported(file.size);
+        toast({ title: 'File imported', description: `Loaded ${file.name} into the editor.` });
+      } catch {
+        toast({ title: 'Import failed', description: 'Could not read that file. Please try again.', variant: 'destructive' });
+      }
+    },
+    [reset, setCode, toast],
+  );
 
   const isRunning = executionState === 'running';
   const isCompleted = false; // execution transitions back to idle on finish — Run is always re-enabled
@@ -107,7 +160,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
   }, [generateShareableLink, toast]);
 
   return (
-    <header className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-6 py-3 bg-[hsl(var(--app-bar))] border-b border-zinc-800/80">
+    <header className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-6 py-3 bg-[hsl(var(--app-bar))] border-b border-border/80">
       <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
         <div className="flex items-center gap-2.5">
           <img
@@ -120,7 +173,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <span style={{ color: '#E2B135' }}>JS</span>
               <span className="ml-1.5 text-[#1B2541] dark:text-zinc-50">VISUALIZER</span>
             </h1>
-            <p className="mt-1 text-[8px] sm:text-[9px] font-medium tracking-[0.18em] text-zinc-500 hidden sm:block uppercase">
+            <p className="mt-1 text-[8px] sm:text-[9px] font-medium tracking-[0.18em] text-muted-foreground hidden sm:block uppercase">
               See Code. Understand Memory.
             </p>
           </div>
@@ -131,7 +184,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white sm:hidden"
+              className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground sm:hidden"
               data-testid="dropdown-examples-mobile"
               aria-label="Open examples menu"
               title="Open examples menu"
@@ -139,21 +192,21 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <Code2 className="w-4 h-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 max-h-[70vh] overflow-y-auto bg-zinc-900 border-zinc-700">
+          <DropdownMenuContent align="end" className="w-72 max-h-[70vh] overflow-y-auto bg-popover border-border">
             {sortedGroupedEntries.map(([category, examples], categoryIndex) => (
               <div key={category}>
-                {categoryIndex > 0 && <DropdownMenuSeparator className="bg-zinc-700" />}
-                <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider">
+                {categoryIndex > 0 && <DropdownMenuSeparator className="bg-border" />}
+                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
                   {customCategoryLabels[category] || category}
                 </DropdownMenuLabel>
                 {examples.map((example) => (
                   <DropdownMenuItem
                     key={example.id}
                     onClick={() => handleExampleSelect(example.code, example.title, example.category)}
-                    className="flex flex-col items-start gap-0.5 py-2 hover:bg-zinc-800 cursor-pointer"
+                    className="flex flex-col items-start gap-0.5 py-2 hover:bg-muted cursor-pointer"
                   >
-                    <span className="font-medium text-zinc-200">{example.title}</span>
-                    <span className="text-xs text-zinc-500">{example.description}</span>
+                    <span className="font-medium text-popover-foreground">{example.title}</span>
+                    <span className="text-xs text-muted-foreground">{example.description}</span>
                   </DropdownMenuItem>
                 ))}
               </div>
@@ -163,12 +216,34 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
+        {/* Hidden file input backing the Import button — code is read in-browser, never uploaded */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".js,.mjs,.cjs,.jsx,text/javascript,application/javascript"
+          className="hidden"
+          onChange={handleImportFile}
+          data-testid="input-import-file"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2 sm:px-3"
+          title="Import a JavaScript file"
+          aria-label="Import a JavaScript file"
+          data-testid="button-import"
+        >
+          <FileUp className="w-4 h-4 sm:mr-2" aria-hidden="true" />
+          <span className="hidden sm:inline">Import</span>
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white hidden sm:flex"
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground hidden sm:flex"
               data-testid="dropdown-examples"
             >
               <Code2 className="w-4 h-4 mr-2" aria-hidden="true" />
@@ -176,22 +251,22 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <ChevronDown className="w-4 h-4 ml-2" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 max-h-[70vh] overflow-y-auto bg-zinc-900 border-zinc-700">
+          <DropdownMenuContent align="end" className="w-80 max-h-[70vh] overflow-y-auto bg-popover border-border">
             {sortedGroupedEntries.map(([category, examples], categoryIndex) => (
               <div key={category}>
-                {categoryIndex > 0 && <DropdownMenuSeparator className="bg-zinc-700" />}
-                <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider">
+                {categoryIndex > 0 && <DropdownMenuSeparator className="bg-border" />}
+                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
                   {customCategoryLabels[category] || category}
                 </DropdownMenuLabel>
                 {examples.map((example) => (
                   <DropdownMenuItem
                     key={example.id}
                     onClick={() => handleExampleSelect(example.code, example.title, example.category)}
-                    className="flex flex-col items-start gap-0.5 py-2 hover:bg-zinc-800 cursor-pointer"
+                    className="flex flex-col items-start gap-0.5 py-2 hover:bg-muted cursor-pointer"
                     data-testid={`example-item-${example.id}`}
                   >
-                    <span className="font-medium text-zinc-200">{example.title}</span>
-                    <span className="text-xs text-zinc-500">{example.description}</span>
+                    <span className="font-medium text-popover-foreground">{example.title}</span>
+                    <span className="text-xs text-muted-foreground">{example.description}</span>
                   </DropdownMenuItem>
                 ))}
               </div>
@@ -223,7 +298,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
             size="sm"
             onClick={() => { trackStepClicked(); onStep(); }}
             disabled={isRunning || isCompleted}
-            className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-40 px-2 sm:px-3"
+            className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 px-2 sm:px-3"
             data-testid="button-step"
           >
             <StepForward className="w-4 h-4 sm:mr-1.5" aria-hidden="true" />
@@ -234,7 +309,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
             variant="outline"
             size="sm"
             onClick={() => { trackResetClicked(); onReset(); }}
-            className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2 sm:px-3"
+            className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2 sm:px-3"
             data-testid="button-reset"
           >
             <RotateCcw className="w-4 h-4 sm:mr-1.5" aria-hidden="true" />
@@ -243,26 +318,26 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
         </div>
 
         {/* Premium: View Panels Toggle */}
-        <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-700">
+        <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 data-tour="view-menu"
                 variant="outline"
                 size="sm"
-                className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2"
+                className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2"
               >
                 <Eye className="w-4 h-4 mr-1" aria-hidden="true" />
                 View
                 <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-700">
-              <DropdownMenuLabel className="text-xs text-zinc-400">View Panels</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="bg-popover border-border">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">View Panels</DropdownMenuLabel>
               <DropdownMenuCheckboxItem
                 checked={showPerformancePanel}
                 onCheckedChange={(v) => { togglePerformancePanel(); trackPanelToggled('performance', v); }}
-                className="hover:bg-zinc-800 cursor-pointer"
+                className="hover:bg-muted cursor-pointer"
               >
                 <Activity className="w-4 h-4 mr-2" />
                 Performance Metrics
@@ -270,7 +345,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <DropdownMenuCheckboxItem
                 checked={comparisonMode}
                 onCheckedChange={(v) => { setComparisonMode(v); trackPanelToggled('comparison', v); }}
-                className="hover:bg-zinc-800 cursor-pointer"
+                className="hover:bg-muted cursor-pointer"
               >
                 <GitCompare className="w-4 h-4 mr-2" />
                 Comparison Mode
@@ -278,7 +353,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <DropdownMenuCheckboxItem
                 checked={showExplanationPanel}
                 onCheckedChange={(v) => { toggleExplanationPanel(); trackPanelToggled('explanation', v); }}
-                className="hover:bg-zinc-800 cursor-pointer"
+                className="hover:bg-muted cursor-pointer"
               >
                 <Lightbulb className="w-4 h-4 mr-2" />
                 Step Explanations
@@ -286,7 +361,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <DropdownMenuCheckboxItem
                 checked={showVariablePanel}
                 onCheckedChange={(v) => { toggleVariablePanel(); trackPanelToggled('variables', v); }}
-                className="hover:bg-zinc-800 cursor-pointer"
+                className="hover:bg-muted cursor-pointer"
               >
                 <Braces className="w-4 h-4 mr-2" />
                 Variable State
@@ -295,12 +370,28 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
                 <DropdownMenuCheckboxItem
                   checked={showMemoryPanel}
                   onCheckedChange={(v) => { toggleMemoryPanel(); trackPanelToggled('memory', v); }}
-                  className="hover:bg-zinc-800 cursor-pointer"
+                  className="hover:bg-muted cursor-pointer"
                 >
                   <MemoryStick className="w-4 h-4 mr-2" />
                   Memory Visualization
                 </DropdownMenuCheckboxItem>
               )}
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Learn</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => setLocation('/blogs')}
+                className="hover:bg-muted cursor-pointer"
+              >
+                <Newspaper className="w-4 h-4 mr-2" />
+                Blogs
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLocation('/faq')}
+                className="hover:bg-muted cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                FAQ
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -310,7 +401,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           variant="outline"
           size="sm"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2 ml-1"
+          className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2 ml-1"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
@@ -322,7 +413,7 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           variant="outline"
           size="sm"
           onClick={() => { trackTourStarted('toolbar'); startTour(); }}
-          className="hidden lg:flex bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2 ml-1"
+          className="hidden lg:flex bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2 ml-1"
           title="Take a guided tour"
           aria-label="Take a guided tour"
         >
@@ -330,12 +421,12 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
         </Button>
 
         {/* Share + Settings */}
-        <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-700">
+        <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
           <Button
             variant="outline"
             size="sm"
             onClick={handleShare}
-            className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2"
+            className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2"
             title="Share"
             aria-label="Share JS Visualizer"
           >
@@ -347,17 +438,17 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white px-2"
+                className="bg-background/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground px-2"
                 title="Manage Examples"
                 aria-label="Manage Examples"
               >
                 <BookOpen className="w-4 h-4" aria-hidden="true" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-5xl max-w-[95vw] bg-zinc-900 border-zinc-700 p-0 overflow-hidden max-h-[90vh]">
-              <DialogHeader className="px-6 pt-5 pb-3 border-b border-zinc-800 flex-shrink-0">
-                <DialogTitle className="text-white">Manage Examples</DialogTitle>
-                <DialogDescription className="text-zinc-400">
+            <DialogContent className="sm:max-w-5xl max-w-[95vw] bg-popover border-border p-0 overflow-hidden max-h-[90vh]">
+              <DialogHeader className="px-6 pt-5 pb-3 border-b border-border flex-shrink-0">
+                <DialogTitle className="text-popover-foreground">Manage Examples</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
                   Add, edit, reorder, or hide examples from the Examples menu
                 </DialogDescription>
               </DialogHeader>
@@ -376,8 +467,8 @@ export function ControlBar({ onRun, onStep, onReset }: ControlBarProps) {
           </Badge>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-3 sm:ml-3 sm:pl-3 sm:border-l border-zinc-700">
-          <span className="text-xs text-zinc-500 whitespace-nowrap">
+        <div className="flex items-center gap-2 sm:gap-3 sm:ml-3 sm:pl-3 sm:border-l border-border">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
             {speed}ms
           </span>
           <Slider

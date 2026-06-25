@@ -121,23 +121,23 @@ export function FeedbackButton() {
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
         style={{ display: showOnMobile ? undefined : 'none' }}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-semibold shadow-lg shadow-amber-900/30 transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-semibold shadow-lg shadow-amber-900/30 transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
         Feedback
       </button>
 
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md w-[95vw] bg-zinc-950 border-zinc-800 p-0 overflow-hidden">
+        <DialogContent className="max-w-md w-[95vw] bg-popover border-border p-0 overflow-hidden">
           {/* Header */}
-          <div className="px-6 pt-6 pb-4 border-b border-zinc-800">
+          <div className="px-6 pt-6 pb-4 border-b border-border">
             <div className="flex items-center gap-2 mb-1">
-              <MessageSquare className="w-4 h-4 text-amber-400" aria-hidden="true" />
-              <DialogTitle className="text-sm font-bold text-zinc-100">
+              <MessageSquare className="w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true" />
+              <DialogTitle className="text-sm font-bold text-popover-foreground">
                 Share Your Feedback
               </DialogTitle>
             </div>
-            <DialogDescription className="text-xs text-zinc-500">
+            <DialogDescription className="text-xs text-muted-foreground">
               Bug report, feature idea, or just a kind word — all welcome.
             </DialogDescription>
           </div>
@@ -145,9 +145,9 @@ export function FeedbackButton() {
           {submitted ? (
             /* ── Success state ── */
             <div className="px-6 py-10 flex flex-col items-center gap-3 text-center">
-              <CheckCircle2 className="w-10 h-10 text-emerald-400" aria-hidden="true" />
-              <p className="text-sm font-semibold text-zinc-100">Thanks for your feedback!</p>
-              <p className="text-xs text-zinc-500 max-w-xs">
+              <CheckCircle2 className="w-10 h-10 text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
+              <p className="text-sm font-semibold text-popover-foreground">Thanks for your feedback!</p>
+              <p className="text-xs text-muted-foreground max-w-xs">
                 I read every submission and use it to make JS Visualizer better.
               </p>
               <Button
@@ -165,8 +165,8 @@ export function FeedbackButton() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="fb-name" className="text-xs text-zinc-400">
-                    Name <span className="text-zinc-600">(optional)</span>
+                  <Label htmlFor="fb-name" className="text-xs text-muted-foreground">
+                    Name <span className="text-muted-foreground/50">(optional)</span>
                   </Label>
                   <Input
                     id="fb-name"
@@ -174,12 +174,12 @@ export function FeedbackButton() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
                     autoComplete="name"
-                    className="bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600 text-sm h-8"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground/50 text-sm h-8"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="fb-email" className="text-xs text-zinc-400">
-                    Email <span className="text-zinc-600">(optional)</span>
+                  <Label htmlFor="fb-email" className="text-xs text-muted-foreground">
+                    Email <span className="text-muted-foreground/50">(optional)</span>
                   </Label>
                   <Input
                     id="fb-email"
@@ -188,29 +188,29 @@ export function FeedbackButton() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     autoComplete="email"
-                    className="bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600 text-sm h-8"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground/50 text-sm h-8"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="fb-type" className="text-xs text-zinc-400">
+                <Label htmlFor="fb-type" className="text-xs text-muted-foreground">
                   Type
                 </Label>
                 <Select value={type} onValueChange={(v) => setType(v as FeedbackType)}>
                   <SelectTrigger
                     id="fb-type"
-                    className="bg-zinc-900 border-zinc-700 text-zinc-200 text-sm h-8"
+                    className="bg-background border-border text-foreground text-sm h-8"
                   >
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-700">
+                  <SelectContent className="bg-popover border-border">
                     {(Object.entries(FEEDBACK_LABELS) as [FeedbackType, string][]).map(
                       ([val, label]) => (
                         <SelectItem
                           key={val}
                           value={val}
-                          className="text-zinc-200 hover:bg-zinc-800 focus:bg-zinc-800 text-sm"
+                          className="text-popover-foreground text-sm"
                         >
                           {label}
                         </SelectItem>
@@ -221,7 +221,7 @@ export function FeedbackButton() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="fb-message" className="text-xs text-zinc-400">
+                <Label htmlFor="fb-message" className="text-xs text-muted-foreground">
                   Message <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
@@ -231,7 +231,7 @@ export function FeedbackButton() {
                   placeholder="Tell us what's on your mind…"
                   required
                   rows={4}
-                  className="bg-zinc-900 border-zinc-700 text-zinc-200 placeholder:text-zinc-600 text-sm resize-none"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground/50 text-sm resize-none"
                 />
               </div>
 
@@ -240,7 +240,7 @@ export function FeedbackButton() {
                   type="button"
                   variant="outline"
                   onClick={() => handleClose(false)}
-                  className="border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 text-xs h-8 px-4"
+                  className="border-border text-muted-foreground hover:bg-muted hover:text-foreground text-xs h-8 px-4"
                 >
                   Cancel
                 </Button>

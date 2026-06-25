@@ -78,6 +78,10 @@ export function trackManageExamplesOpened() {
   gtag('event', 'manage_examples_opened');
 }
 
+export function trackFileImported(sizeBytes: number) {
+  gtag('event', 'file_imported', { size_bytes: sizeBytes });
+}
+
 // ─── Features / Panels ────────────────────────────────────────────────────
 
 export function trackPanelToggled(panel: string, enabled: boolean) {

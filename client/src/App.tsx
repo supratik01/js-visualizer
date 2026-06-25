@@ -8,6 +8,7 @@ import { Visualizer } from "@/pages/Visualizer";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import { Blog } from "@/pages/Blog";
 import { BlogPost } from "@/pages/BlogPost";
+import { FAQ } from "@/pages/FAQ";
 import { NotFound } from "@/pages/NotFound";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
@@ -17,8 +18,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Visualizer} />
       <Route path="/privacy" component={PrivacyPolicy} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/blogs" component={Blog} />
+      <Route path="/blogs/:slug" component={BlogPost} />
+      <Route path="/faq" component={FAQ} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -29,6 +29,15 @@ export function startTour() {
         },
       },
       {
+        element: '[data-testid="button-import"]',
+        popover: {
+          title: '📂 Import File',
+          description: 'Already have a .js file? Click Import to load it straight into the editor — no copy-paste needed. Supports .js, .mjs, .cjs, and .jsx files.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
         element: '[data-testid="button-run"]',
         popover: {
           title: '▶️ Run / Pause',

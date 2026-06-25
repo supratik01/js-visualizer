@@ -168,16 +168,16 @@ export function ExamplesControlPanel() {
   return (
     <div className="flex h-[520px] min-h-0">
       {/* ── Left: category + example list ── */}
-      <div className="w-72 flex-shrink-0 border-r border-zinc-700 flex flex-col">
+      <div className="w-72 flex-shrink-0 border-r border-border flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-700 flex-shrink-0">
-          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border flex-shrink-0">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Examples ({customExamples.length})
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-zinc-400 hover:text-emerald-400"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-500"
             onClick={() => setShowNewCategory(!showNewCategory)}
             title="Add new category"
           >
@@ -187,7 +187,7 @@ export function ExamplesControlPanel() {
 
         {/* New category input */}
         {showNewCategory && (
-          <div className="flex gap-1 px-2 py-1.5 border-b border-zinc-700 flex-shrink-0">
+          <div className="flex gap-1 px-2 py-1.5 border-b border-border flex-shrink-0">
             <Input
               value={newCategoryName}
               onChange={e => setNewCategoryName(e.target.value)}
@@ -196,13 +196,13 @@ export function ExamplesControlPanel() {
                 if (e.key === 'Escape') setShowNewCategory(false);
               }}
               placeholder="Category name…"
-              className="h-6 text-xs bg-zinc-800 border-zinc-600 text-white"
+              className="h-6 text-xs bg-background border-border text-foreground"
               autoFocus
             />
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300"
+              className="h-6 w-6 p-0 text-emerald-500 hover:text-emerald-400"
               onClick={handleAddCategory}
             >
               <Check className="w-3 h-3" />
@@ -210,7 +210,7 @@ export function ExamplesControlPanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               onClick={() => setShowNewCategory(false)}
             >
               <X className="w-3 h-3" />
@@ -228,17 +228,17 @@ export function ExamplesControlPanel() {
               <div key={cat}>
                 {/* Category header */}
                 <div
-                  className={`flex items-center gap-1 px-2 py-1.5 border-b border-zinc-700/50 group sticky top-0 z-10 transition-colors ${
+                  className={`flex items-center gap-1 px-2 py-1.5 border-b border-border/50 group sticky top-0 z-10 transition-colors ${
                     isDragOver
                       ? 'bg-blue-500/20 border-blue-500/30'
-                      : 'bg-zinc-800/90'
+                      : 'bg-muted/90'
                   }`}
                   onDragOver={e => handleDragOver(e, cat)}
                   onDragLeave={() => setDragOverCategory(null)}
                   onDrop={e => handleDrop(e, cat)}
                 >
                   <button
-                    className="text-zinc-500 hover:text-zinc-300 flex-shrink-0 p-0.5"
+                    className="text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5"
                     onClick={() => toggleCollapse(cat)}
                   >
                     {isCollapsed
@@ -255,12 +255,12 @@ export function ExamplesControlPanel() {
                         if (e.key === 'Enter') commitEditCat();
                         if (e.key === 'Escape') setEditingCategoryKey(null);
                       }}
-                      className="h-5 text-xs bg-zinc-700 border-zinc-500 text-white flex-1 px-1"
+                      className="h-5 text-xs bg-muted border-border text-foreground flex-1 px-1"
                       autoFocus
                     />
                   ) : (
                     <span
-                      className="text-[11px] font-semibold text-zinc-300 flex-1 truncate cursor-default"
+                      className="text-[11px] font-semibold text-foreground flex-1 truncate cursor-default"
                       onDoubleClick={() => startEditCat(cat)}
                       title="Double-click to rename"
                     >
@@ -268,14 +268,14 @@ export function ExamplesControlPanel() {
                     </span>
                   )}
 
-                  <span className="text-[10px] text-zinc-600 flex-shrink-0 mr-1">
+                  <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 mr-1">
                     {catExamples.length}
                   </span>
 
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-emerald-400 flex-shrink-0"
+                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-emerald-500 flex-shrink-0"
                     onClick={() => handleAdd(cat)}
                     title="Add example to this category"
                   >
@@ -291,13 +291,13 @@ export function ExamplesControlPanel() {
                     onDragStart={e => handleDragStart(e, ex.id)}
                     onDragEnd={handleDragEnd}
                     onClick={() => setSelectedId(ex.id)}
-                    className={`flex items-center gap-1.5 px-2 py-1.5 cursor-pointer border-b border-zinc-800/40 group/ex transition-colors ${
+                    className={`flex items-center gap-1.5 px-2 py-1.5 cursor-pointer border-b border-border/30 group/ex transition-colors ${
                       selectedId === ex.id
-                        ? 'bg-zinc-700'
-                        : 'hover:bg-zinc-800/70'
+                        ? 'bg-accent'
+                        : 'hover:bg-muted'
                     } ${draggedId === ex.id ? 'opacity-40' : ''}`}
                   >
-                    <GripVertical className="w-3 h-3 text-zinc-600 flex-shrink-0 cursor-grab active:cursor-grabbing" />
+                    <GripVertical className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 cursor-grab active:cursor-grabbing" />
                     <Switch
                       checked={ex.visible}
                       onCheckedChange={v => updateCustomExample(ex.id, { visible: v })}
@@ -306,13 +306,13 @@ export function ExamplesControlPanel() {
                     />
                     <span
                       className={`text-xs flex-1 truncate ${
-                        ex.visible ? 'text-zinc-200' : 'text-zinc-500 line-through'
+                        ex.visible ? 'text-foreground' : 'text-muted-foreground line-through'
                       }`}
                     >
                       {ex.title}
                     </span>
                     <button
-                      className="opacity-0 group-hover/ex:opacity-100 text-zinc-600 hover:text-red-400 flex-shrink-0 p-0.5 transition-colors"
+                      className="opacity-0 group-hover/ex:opacity-100 text-muted-foreground/50 hover:text-red-500 flex-shrink-0 p-0.5 transition-colors"
                       onClick={e => { e.stopPropagation(); handleDelete(ex.id); }}
                       title="Delete example"
                     >
@@ -332,7 +332,7 @@ export function ExamplesControlPanel() {
           <div className="flex flex-col h-full p-4 gap-3 overflow-auto">
             {/* Toolbar */}
             <div className="flex items-center justify-between flex-shrink-0">
-              <h3 className="text-sm font-semibold text-white truncate mr-2">
+              <h3 className="text-sm font-semibold text-foreground truncate mr-2">
                 {form.title || 'Untitled'}
               </h3>
               <div className="flex gap-2 flex-shrink-0">
@@ -340,7 +340,7 @@ export function ExamplesControlPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-zinc-400 hover:text-zinc-200"
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
                     onClick={handleDiscard}
                   >
                     Discard
@@ -351,7 +351,7 @@ export function ExamplesControlPanel() {
                   className={`h-7 text-xs ${
                     isDirty
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-zinc-700 text-zinc-500'
+                      : 'bg-muted text-muted-foreground'
                   }`}
                   onClick={handleSave}
                   disabled={!isDirty}
@@ -365,22 +365,22 @@ export function ExamplesControlPanel() {
             {/* Title + Category row */}
             <div className="grid grid-cols-2 gap-3 flex-shrink-0">
               <div className="space-y-1">
-                <Label className="text-[11px] text-zinc-400">Title</Label>
+                <Label className="text-[11px] text-muted-foreground">Title</Label>
                 <Input
                   value={form.title}
                   onChange={e => setField('title', e.target.value)}
-                  className="h-7 text-xs bg-zinc-800 border-zinc-600 text-white focus:border-zinc-400"
+                  className="h-7 text-xs bg-background border-border text-foreground"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-zinc-400">Category</Label>
+                <Label className="text-[11px] text-muted-foreground">Category</Label>
                 <Select value={form.category} onValueChange={v => setField('category', v)}>
-                  <SelectTrigger className="h-7 text-xs bg-zinc-800 border-zinc-600 text-white">
+                  <SelectTrigger className="h-7 text-xs bg-background border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-700 max-h-48 overflow-y-auto">
+                  <SelectContent className="bg-popover border-border max-h-48 overflow-y-auto">
                     {allCategories.map(c => (
-                      <SelectItem key={c} value={c} className="text-xs text-zinc-200">
+                      <SelectItem key={c} value={c} className="text-xs text-popover-foreground">
                         {customCategoryLabels[c] || c}
                       </SelectItem>
                     ))}
@@ -391,31 +391,31 @@ export function ExamplesControlPanel() {
 
             {/* Description */}
             <div className="space-y-1 flex-shrink-0">
-              <Label className="text-[11px] text-zinc-400">Description</Label>
+              <Label className="text-[11px] text-muted-foreground">Description</Label>
               <Input
                 value={form.description}
                 onChange={e => setField('description', e.target.value)}
-                className="h-7 text-xs bg-zinc-800 border-zinc-600 text-white focus:border-zinc-400"
+                className="h-7 text-xs bg-background border-border text-foreground"
               />
             </div>
 
             {/* Code */}
             <div className="flex flex-col flex-1 space-y-1 min-h-0">
-              <Label className="text-[11px] text-zinc-400 flex-shrink-0">Code</Label>
+              <Label className="text-[11px] text-muted-foreground flex-shrink-0">Code</Label>
               <Textarea
                 value={form.code}
                 onChange={e => setField('code', e.target.value)}
-                className="flex-1 font-mono text-xs bg-zinc-800 border-zinc-600 text-zinc-100 resize-none focus:border-zinc-400 leading-relaxed"
+                className="flex-1 font-mono text-xs bg-background border-border text-foreground resize-none leading-relaxed"
                 spellCheck={false}
               />
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 gap-3">
-            <Edit2 className="w-10 h-10 text-zinc-700" />
-            <p className="text-sm text-zinc-400">Select an example to edit</p>
-            <p className="text-xs text-zinc-600">Double-click a category name to rename it</p>
-            <p className="text-xs text-zinc-600">
+            <Edit2 className="w-10 h-10 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Select an example to edit</p>
+            <p className="text-xs text-muted-foreground/60">Double-click a category name to rename it</p>
+            <p className="text-xs text-muted-foreground/60">
               Drag examples between categories using the grip handle
             </p>
           </div>

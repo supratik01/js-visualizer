@@ -17,7 +17,7 @@ export function BlogPost() {
   useSEO({
     title: post?.metaTitle || 'Blog — JS Visualizer',
     description: post?.metaDescription || '',
-    path: `/blog/${slug}`,
+    path: `/blogs/${slug}`,
     type: 'article',
     publishedTime: post?.publishedAt,
     author: 'Bytefront',
@@ -37,12 +37,12 @@ export function BlogPost() {
   const nextPost = currentIndex < blogPosts.length - 1 ? blogPosts[currentIndex + 1] : null;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+      <header className="bg-[hsl(var(--app-bar))] border-b border-border px-6 py-4 flex items-center justify-between">
         <Link
-          href="/blog"
-          className="flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-400 transition-colors"
+          href="/blogs"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           All posts
@@ -51,7 +51,7 @@ export function BlogPost() {
           <img src="/logo.png" alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
           <span className="text-xs font-bold tracking-widest">
             <span style={{ color: '#E2B135' }}>JS</span>
-            <span className="ml-1 text-zinc-100">VISUALIZER</span>
+            <span className="ml-1 text-foreground">VISUALIZER</span>
           </span>
         </Link>
       </header>
@@ -64,19 +64,19 @@ export function BlogPost() {
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/70 bg-amber-500/10 px-2 py-0.5 rounded"
+                className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400/70 bg-amber-500/10 px-2 py-0.5 rounded"
               >
                 {tag}
               </span>
             ))}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 leading-tight mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-4">
             {post.title}
           </h1>
 
           {/* Meta */}
-          <div className="flex items-center gap-4 text-xs text-zinc-500">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
               {new Date(post.publishedAt).toLocaleDateString('en-US', {
@@ -93,31 +93,31 @@ export function BlogPost() {
         </div>
 
         {/* Article content */}
-        <article className="prose-custom text-[15px] text-zinc-300 leading-relaxed [&>p]:mb-4 [&>h2]:scroll-mt-20 [&>p>a]:text-amber-400 [&>p>a]:underline [&>p>a]:underline-offset-2 [&>p>a:hover]:text-amber-300">
+        <article className="prose-custom text-[15px] text-foreground leading-relaxed [&>p]:mb-4 [&>h2]:scroll-mt-20 [&>p>a]:text-amber-500 dark:[&>p>a]:text-amber-400 [&>p>a]:underline [&>p>a]:underline-offset-2 [&>p>a:hover]:text-amber-400 dark:[&>p>a:hover]:text-amber-300">
           {post.content}
         </article>
 
         {/* Post navigation */}
         {(prevPost || nextPost) && (
-          <div className="mt-16 pt-8 border-t border-zinc-800 grid grid-cols-2 gap-4">
+          <div className="mt-16 pt-8 border-t border-border grid grid-cols-2 gap-4">
             {prevPost ? (
               <Link
-                href={`/blog/${prevPost.slug}`}
+                href={`/blogs/${prevPost.slug}`}
                 className="text-left group"
               >
-                <span className="text-xs text-zinc-500 mb-1 block">← Previous</span>
-                <span className="text-sm text-zinc-300 group-hover:text-amber-400 transition-colors">
+                <span className="text-xs text-muted-foreground mb-1 block">← Previous</span>
+                <span className="text-sm text-foreground group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
                   {prevPost.title}
                 </span>
               </Link>
             ) : <div />}
             {nextPost ? (
               <Link
-                href={`/blog/${nextPost.slug}`}
+                href={`/blogs/${nextPost.slug}`}
                 className="text-right group"
               >
-                <span className="text-xs text-zinc-500 mb-1 block">Next →</span>
-                <span className="text-sm text-zinc-300 group-hover:text-amber-400 transition-colors">
+                <span className="text-xs text-muted-foreground mb-1 block">Next →</span>
+                <span className="text-sm text-foreground group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
                   {nextPost.title}
                 </span>
               </Link>
@@ -127,8 +127,8 @@ export function BlogPost() {
 
         {/* CTA */}
         <div className="mt-16 rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
-          <h3 className="text-lg font-bold text-zinc-100 mb-2">See it in action</h3>
-          <p className="text-sm text-zinc-400 mb-5 max-w-md mx-auto">
+          <h3 className="text-lg font-bold text-foreground mb-2">See it in action</h3>
+          <p className="text-sm text-muted-foreground mb-5 max-w-md mx-auto">
             Stop reading about the event loop — <em>watch</em> it. Paste any code snippet from this
             article into JS Visualizer and see every step animate in real time.
           </p>
@@ -142,10 +142,10 @@ export function BlogPost() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 px-6 py-4 mt-16 text-center">
-        <p className="text-xs text-zinc-600">
+      <footer className="border-t border-border px-6 py-4 mt-16 text-center">
+        <p className="text-xs text-muted-foreground/60">
           © 2026{' '}
-          <a href="https://bytefront.dev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">
+          <a href="https://bytefront.dev" target="_blank" rel="noopener noreferrer" className="hover:text-muted-foreground transition-colors">
             Bytefront
           </a>
         </p>

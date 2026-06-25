@@ -9,11 +9,8 @@
  *  - "false"             → badge hidden entirely
  *  Flip in Vercel → Settings → Environment Variables, then redeploy.
  */
-const FLAG = import.meta.env.VITE_SHOW_LAUNCH_BADGE ?? import.meta.env.VITE_SHOW_PH_BADGE;
-const ENABLED = FLAG === undefined || FLAG === 'true';
-
 export function ProductHuntBadge() {
-  if (!ENABLED) return null;
+  return null;
 
   return (
     <a
