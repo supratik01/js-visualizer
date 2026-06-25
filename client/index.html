@@ -320,7 +320,28 @@
       </div>
     </noscript>
 
-    <div id="root"></div>
+    <!-- ─── App root with pre-rendered SEO content ──────────────────────
+         The markup inside #root is real, crawler-visible content present
+         in the initial HTML response (unlike a <noscript> fallback, which
+         Google discounts). React's createRoot() replaces these children
+         on mount, so it doubles as a themed loading screen for users.
+    ────────────────────────────────────────────────────────────────── -->
+    <div id="root">
+      <div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;padding:2rem;background:#0a0a0a;color:#e5e5e5;font-family:Inter,system-ui,sans-serif;text-align:center;">
+        <img src="/logo.png" alt="JS Visualizer logo" width="56" height="56" style="object-fit:contain;border-radius:12px;" />
+        <h1 style="font-size:1.6rem;font-weight:700;letter-spacing:0.02em;margin:0;">
+          <span style="color:#E2B135;">JS</span> Visualizer — JavaScript Event Loop &amp; Call Stack Visualizer
+        </h1>
+        <p style="max-width:560px;font-size:1rem;line-height:1.6;color:#a3a3a3;margin:0;">
+          A free, interactive JavaScript visualizer. Step through code line-by-line and watch the
+          <strong>call stack</strong>, <strong>Web APIs</strong>, <strong>task queue</strong>,
+          <strong>microtask queue</strong>, <strong>event loop</strong>, and <strong>memory graph</strong>
+          animate in real time. Master async/await, Promises, closures, and the JavaScript runtime by seeing
+          exactly how your code executes.
+        </p>
+        <p style="font-size:0.85rem;color:#737373;margin:0;">Loading the interactive visualizer…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

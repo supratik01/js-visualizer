@@ -23,10 +23,42 @@ export function BlogPost() {
     author: 'Bytefront',
   });
 
+  // Inject Article structured data (rich-result eligibility) for the post.
+  useEffect(() => {
+    if (!post) return;
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.setAttribute('data-blog-jsonld', 'true');
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: post.title,
+      description: post.metaDescription,
+      datePublished: post.publishedAt,
+      dateModified: post.updatedAt || post.publishedAt,
+      author: { '@type': 'Organization', name: 'Bytefront', url: 'https://www.bytefront.dev/' },
+      publisher: {
+        '@type': 'Organization',
+        name: 'JS Visualizer',
+        logo: { '@type': 'ImageObject', url: 'https://www.jsvisualizer.bytefront.dev/logo.png' },
+      },
+      image: 'https://www.jsvisualizer.bytefront.dev/og-image.png',
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `https://www.jsvisualizer.bytefront.dev/blogs/${post.slug}`,
+      },
+      keywords: post.tags.join(', '),
+    });
+    document.head.appendChild(script);
+    return () => {
+      script.remove();
+    };
+  }, [post]);
+
   if (!post) {
     // Redirect to blog index if post not found
     useEffect(() => {
-      setLocation('/blog');
+      setLocation('/blogs');
     }, []);
     return null;
   }
