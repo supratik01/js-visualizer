@@ -638,99 +638,293 @@ console.log('C');`}</CodeBlock>
   },
   {
     slug: 'why-promises-run-before-settimeout',
-    title: 'Why Do Promises Run Before setTimeout?',
+    title: 'Why Do Promises Run Before setTimeout? (Explained Visually)',
     metaTitle: 'Why Do Promises Run Before setTimeout? — Explained Visually (2026)',
-    metaDescription: 'Why does a Promise.then() callback run before setTimeout(fn, 0) in JavaScript? Learn the microtask vs macrotask priority rule that decides the order — with runnable examples.',
+    metaDescription: 'Understand why Promise callbacks always execute before setTimeout(0) by learning how JavaScript\'s Event Loop, Microtask Queue, and Task Queue really work — with step-by-step examples.',
     publishedAt: '2026-06-25',
-    readingTime: '6 min read',
+    readingTime: '8 min read',
     tags: ['JavaScript', 'Promises', 'setTimeout', 'Event Loop'],
-    excerpt: 'setTimeout(fn, 0) looks like it should run immediately — yet a Promise callback registered later still beats it. Here is the one rule that explains why.',
+    excerpt: 'setTimeout(fn, 0) looks like it should run immediately — yet a Promise callback still beats it. The answer lies in how the Event Loop, Microtask Queue, and Task Queue work together.',
     content: (
       <>
         <p>
-          It's one of the most common JavaScript interview questions, and one of the most confusing things to
-          see for the first time: you register a <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">setTimeout(fn, 0)</code>{' '}
-          <em>before</em> a <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Promise.then()</code>,
-          yet the Promise callback runs first. Why?
+          Almost every JavaScript developer has seen this:
         </p>
 
-        <CodeBlock title="the-question.js">{`setTimeout(() => console.log('setTimeout'), 0);
-Promise.resolve().then(() => console.log('promise'));`}</CodeBlock>
+        <CodeBlock title="the-puzzle.js">{`console.log("Start");
+
+setTimeout(() => {
+  console.log("setTimeout");
+}, 0);
+
+Promise.resolve().then(() => {
+  console.log("Promise");
+});
+
+console.log("End");`}</CodeBlock>
 
         <p>Output:</p>
-        <CodeBlock>{`promise
+        <CodeBlock>{`Start
+End
+Promise
 setTimeout`}</CodeBlock>
+
+        <p>
+          At first glance, this seems strange.{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">setTimeout(..., 0)</code>{' '}
+          looks like it should execute immediately. So why does the Promise callback run first?
+        </p>
+
+        <p>The answer lies in <strong>JavaScript's Event Loop</strong>.</p>
 
         <Callout type="tip">
           <TryItLink
-            code={`setTimeout(() => console.log('setTimeout'), 0);\nPromise.resolve().then(() => console.log('promise'));`}
-            label="Run it yourself in JS Visualizer"
+            code={`console.log("Start");\n\nsetTimeout(() => {\n  console.log("setTimeout");\n}, 0);\n\nPromise.resolve().then(() => {\n  console.log("Promise");\n});\n\nconsole.log("End");`}
+            label="Watch the queues in JS Visualizer"
           />
         </Callout>
 
-        <h2 id="the-answer" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
-          The One-Sentence Answer
+        <h2 id="step1" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Step 1: JavaScript Executes Synchronous Code First
         </h2>
 
         <p>
-          Promise callbacks are <strong className="text-cyan-400">microtasks</strong>, and the event loop drains
-          the <em>entire</em> microtask queue before it runs the next <strong className="text-red-400">macrotask</strong>{' '}
-          — and <code className="text-zinc-400">setTimeout</code> callbacks are macrotasks. So even a 0&nbsp;ms timer
-          has to wait until every pending Promise callback has finished.
+          Everything in the current script executes on the <strong>Call Stack</strong>.{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">console.log("Start")</code>{' '}
+          prints immediately.
         </p>
+
+        <p>
+          When JavaScript encounters <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">setTimeout</code>,
+          it <strong>does not execute the callback</strong>. Instead, it hands the callback to the browser
+          timer system and continues executing. The Promise is already resolved, so its{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">.then()</code>{' '}
+          callback is immediately scheduled in the <strong>Microtask Queue</strong>.
+          Then <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">console.log("End")</code> prints.
+        </p>
+
+        <p>Current output after synchronous code:</p>
+        <CodeBlock>{`Start
+End`}</CodeBlock>
+
+        <h2 id="step2" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Step 2: The Call Stack Becomes Empty
+        </h2>
+
+        <p>At this point, both queues look like this:</p>
+
+        <div className="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border p-4 bg-cyan-500/5 border-cyan-500/20">
+            <h3 className="text-sm font-bold text-cyan-400 mb-2">Microtask Queue</h3>
+            <code className="text-xs text-zinc-300">Promise callback</code>
+          </div>
+          <div className="rounded-lg border p-4 bg-red-500/5 border-red-500/20">
+            <h3 className="text-sm font-bold text-red-400 mb-2">Task Queue (Macrotask)</h3>
+            <code className="text-xs text-zinc-300">setTimeout callback</code>
+          </div>
+        </div>
+
+        <h2 id="step3" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Step 3: The Event Loop Rule
+        </h2>
+
+        <p>The Event Loop always follows this order:</p>
+
+        <ol className="my-4 space-y-2 text-sm text-zinc-300">
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">1.</span> Execute one Task (current script).</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">2.</span> Empty the <strong>entire Microtask Queue</strong>.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">3.</span> Optionally allow rendering.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">4.</span> Execute the next Task (Macrotask).</li>
+        </ol>
+
+        <p>
+          Because Promise callbacks are <strong className="text-cyan-400">Microtasks</strong>, they execute
+          before timer callbacks. Output becomes:
+        </p>
+        <CodeBlock>{`Start
+End
+Promise`}</CodeBlock>
+
+        <h2 id="step4" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Step 4: Finally, setTimeout Runs
+        </h2>
+
+        <p>
+          After the Microtask Queue is empty, the Event Loop processes the next Task. Final output:
+        </p>
+        <CodeBlock>{`Start
+End
+Promise
+setTimeout`}</CodeBlock>
+
+        <h2 id="misconception" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Common Misconception
+        </h2>
+
+        <div className="my-6 space-y-3">
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-red-400 mb-1">❌ Promises have higher priority than setTimeout.</p>
+            <p className="text-sm text-zinc-400">This is an oversimplification.</p>
+          </div>
+          <div className="rounded-lg border border-emerald-800/40 bg-emerald-500/5 p-4">
+            <p className="text-sm font-semibold text-emerald-400 mb-1">✅ The real reason:</p>
+            <p className="text-sm text-zinc-300">
+              The Event Loop <strong>must completely drain the Microtask Queue before executing the next Task (Macrotask)</strong>.
+            </p>
+          </div>
+        </div>
 
         <h2 id="what-0ms-means" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
-          What setTimeout(fn, 0) Actually Means
+          Why Doesn't setTimeout(0) Run Immediately?
         </h2>
 
         <p>
-          The <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">0</code> is not "run now."
-          It's a <em>minimum delay</em>. When the timer (handled by a Web API) elapses, the callback is placed in
-          the macrotask queue — where it waits for two things:
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">setTimeout(fn, 0)</code> means
+          "execute after <em>at least</em> 0 milliseconds" — not "execute instantly."
+          Even after the timer expires, its callback waits until:
         </p>
 
         <ol className="my-4 space-y-2 text-sm text-zinc-300">
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">1.</span> All currently-running synchronous code to finish.</li>
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">2.</span> The entire microtask queue to drain.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">1.</span> The current script finishes.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">2.</span> The Call Stack becomes empty.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">3.</span> Every pending Microtask has completed.</li>
         </ol>
 
-        <p>
-          Only then can a macrotask run. (Browsers also clamp nested timers to a minimum of ~4&nbsp;ms, but the
-          queue priority is the real reason here.)
-        </p>
-
-        <h2 id="step-by-step" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
-          Step by Step
+        <h2 id="example2" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Example 2: Chained Promises
         </h2>
 
-        <ol className="my-4 space-y-2 text-sm text-zinc-300">
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">1.</span> <code className="text-zinc-400">setTimeout</code> hands its callback to the Web API timer (0&nbsp;ms).</li>
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">2.</span> <code className="text-zinc-400">Promise.resolve().then()</code> queues its callback as a microtask.</li>
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">3.</span> Synchronous code ends → the call stack is empty.</li>
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">4.</span> Event loop drains microtasks → <code className="text-zinc-400">promise</code> prints.</li>
-          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">5.</span> Microtask queue empty → take one macrotask → <code className="text-zinc-400">setTimeout</code> prints.</li>
-        </ol>
+        <CodeBlock title="example-2.js">{`console.log(1);
 
-        <Callout type="warning">
-          This means a flood of Promise callbacks can delay your timers. If timing matters, don't assume{' '}
-          <code className="text-amber-400">setTimeout(fn, 0)</code> gives you a precise or immediate slot.
+setTimeout(() => console.log(2), 0);
+
+Promise.resolve()
+  .then(() => console.log(3))
+  .then(() => console.log(4));
+
+console.log(5);`}</CodeBlock>
+
+        <p>Output:</p>
+        <CodeBlock>{`1
+5
+3
+4
+2`}</CodeBlock>
+
+        <p>
+          The second <code className="text-zinc-400">.then()</code> is also a Microtask, so it executes
+          before <code className="text-zinc-400">setTimeout</code>. Both microtasks drain completely before
+          the macrotask gets a turn.
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`console.log(1);\n\nsetTimeout(() => console.log(2), 0);\n\nPromise.resolve()\n  .then(() => console.log(3))\n  .then(() => console.log(4));\n\nconsole.log(5);`}
+            label="Step through Example 2 in JS Visualizer"
+          />
         </Callout>
 
-        <h2 id="related" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
-          Go Deeper
+        <h2 id="example3" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Example 3: Nested Microtasks
         </h2>
 
+        <CodeBlock title="example-3.js">{`console.log("Start");
+
+setTimeout(() => {
+  console.log("Timeout");
+}, 0);
+
+Promise.resolve().then(() => {
+  console.log("Promise 1");
+
+  Promise.resolve().then(() => {
+    console.log("Promise 2");
+  });
+});
+
+console.log("End");`}</CodeBlock>
+
+        <p>Output:</p>
+        <CodeBlock>{`Start
+End
+Promise 1
+Promise 2
+Timeout`}</CodeBlock>
+
         <p>
-          This is really one instance of a bigger topic — the difference between microtasks and macrotasks.
-          For the full picture (including how <code className="text-zinc-400">async/await</code> and{' '}
-          <code className="text-zinc-400">queueMicrotask</code> fit in), read{' '}
+          While executing <code className="text-zinc-400">Promise 1</code>, another Microtask is scheduled.
+          The Event Loop continues draining Microtasks until none remain — so{' '}
+          <code className="text-zinc-400">Promise 2</code> also runs before <code className="text-zinc-400">Timeout</code>.
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`console.log("Start");\n\nsetTimeout(() => {\n  console.log("Timeout");\n}, 0);\n\nPromise.resolve().then(() => {\n  console.log("Promise 1");\n\n  Promise.resolve().then(() => {\n    console.log("Promise 2");\n  });\n});\n\nconsole.log("End");`}
+            label="Watch nested microtasks in JS Visualizer"
+          />
+        </Callout>
+
+        <h2 id="starvation" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Microtask Starvation
+        </h2>
+
+        <CodeBlock title="starvation.js">{`function loop() {
+  Promise.resolve().then(loop);
+}
+
+loop();`}</CodeBlock>
+
+        <p>
+          Because every Microtask schedules another Microtask,{' '}
+          <code className="text-zinc-400">setTimeout</code> never executes, rendering may be blocked,
+          and the application appears frozen. This is called <strong>Microtask Starvation</strong>.
+        </p>
+
+        <Callout type="warning">
+          If you need to yield to rendering or timers, use a macrotask like{' '}
+          <code className="text-amber-400">setTimeout</code> instead of chaining endless microtasks.
+        </Callout>
+
+        <h2 id="mental-model" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Mental Model
+        </h2>
+
+        <div className="my-6 rounded-lg border border-zinc-700 bg-zinc-900/50 p-6 font-mono text-sm text-zinc-300 leading-relaxed">
+          <div>Current Script</div>
+          <div className="text-zinc-500 pl-4">↓</div>
+          <div>Drain <span className="text-cyan-400">ALL Microtasks</span></div>
+          <div className="text-zinc-500 pl-4">↓</div>
+          <div>Browser may Render</div>
+          <div className="text-zinc-500 pl-4">↓</div>
+          <div>Run <span className="text-red-400">ONE Task</span></div>
+          <div className="text-zinc-500 pl-4">↓</div>
+          <div>Repeat</div>
+        </div>
+
+        <h2 id="takeaways" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Key Takeaways
+        </h2>
+
+        <div className="my-6 rounded-lg border border-zinc-700 bg-zinc-900/50 p-6">
+          <ol className="space-y-3 text-sm text-zinc-300">
+            <li><strong className="text-zinc-100">1.</strong> <code className="text-amber-400">setTimeout(..., 0)</code> schedules a <strong>Macrotask</strong> after <em>at least</em> the specified delay.</li>
+            <li><strong className="text-zinc-100">2.</strong> Promise callbacks (<code className="text-zinc-400">.then</code>, <code className="text-zinc-400">.catch</code>, <code className="text-zinc-400">.finally</code>) are <strong className="text-cyan-400">Microtasks</strong>.</li>
+            <li><strong className="text-zinc-100">3.</strong> The Event Loop drains the <strong>entire Microtask Queue</strong> before processing the next Task.</li>
+            <li><strong className="text-zinc-100">4.</strong> This is why Promises execute before <code className="text-zinc-400">setTimeout()</code>.</li>
+            <li><strong className="text-zinc-100">5.</strong> Microtasks can enqueue more Microtasks — they all finish before the next Task.</li>
+          </ol>
+        </div>
+
+        <p>
+          For the full picture including <code className="text-zinc-400">async/await</code> and{' '}
+          <code className="text-zinc-400">queueMicrotask</code>, read{' '}
           <a href="/blogs/microtask-vs-macrotask-javascript" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">Microtask vs Macrotask in JavaScript</a>{' '}
-          and the full{' '}
+          and the{' '}
           <a href="/blogs/javascript-event-loop-explained" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">JavaScript Event Loop guide</a>.
         </p>
 
         <div className="my-8 flex justify-center">
-          <TryItLink label="See it animate in JS Visualizer" />
+          <TryItLink label="See it animate in JS Visualizer — free" />
         </div>
       </>
     ),
