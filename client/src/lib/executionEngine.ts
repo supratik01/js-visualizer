@@ -820,11 +820,16 @@ function callGeneratorNext(gen: any, inputValue: any, ctx: ExecutionContext): { 
   if (!gen || gen.__type !== 'Generator') return { value: undefined, done: true };
   if (gen.__state === 'completed') return { value: undefined, done: true };
 
-  // On first call (suspended-start), pre-collect all yield values
+  // On first call (suspended-start), pre-collect yield values AND the steps
+  // (console output, line highlights, etc.) the body emits, segmented by yield
+  // boundary. Each later .next() replays its segment into the live step stream,
+  // so generator-body side effects appear in correct order (fixes the previous
+  // behavior where body steps were collected into a throwaway buffer and lost).
   if (gen.__state === 'suspended-start') {
     gen.__yieldValues = [];
     gen.__returnValue = undefined;
     gen.__yieldIndex = 0;
+    gen.__segIndex = 0;
 
     const funcNode = gen.__funcNode;
     const savedVars = gen.__savedVars || new Map(ctx.variables);
@@ -837,17 +842,40 @@ function callGeneratorNext(gen: any, inputValue: any, ctx: ExecutionContext): { 
     const savedThisBinding = ctx.thisBinding;
     if (gen.__thisValue !== undefined) ctx.thisBinding = gen.__thisValue;
 
-    // Suppress step generation during pre-collection phase
-    // (collection runs the body to find yield values — we don't want those intermediate steps)
+    // Collect into a KEPT buffer (not discarded). Record the buffer length at
+    // each yield so the steps can be sliced into one segment per .next() call.
     const savedSteps = ctx.steps;
     const savedStepLimit = ctx.stepLimit;
     const savedHasReturned = ctx.hasReturned;
     const savedConstBindings = new Set(ctx.constBindings);
-    ctx.steps = []; // temporary dummy array — discarded after collection
+    const collectorSteps: any[] = [];
+    const boundaries: number[] = [];
+    ctx.steps = collectorSteps;
     ctx.stepLimit = 100000; // high limit so collection doesn't bail out early
 
-    // Collect yields by executing the body with a special yield collector
+    // Capture a boundary at every yield push. All push sites (plain yield,
+    // yield*, loops, conditionals) go through this array, so overriding its
+    // instance push records every boundary regardless of branch.
+    const yv = gen.__yieldValues as any[];
+    const nativePush = Array.prototype.push;
+    (yv as any).push = function (...items: any[]) {
+      for (const it of items) { boundaries.push(collectorSteps.length); nativePush.call(this, it); }
+      return this.length;
+    };
+
+    // Collect yields (and emit body steps into collectorSteps)
     collectYields(funcNode.body, ctx, gen.__yieldValues, gen);
+
+    delete (yv as any).push; // restore Array.prototype.push
+
+    // Slice collected steps into per-.next() segments: one segment leading to
+    // each yield, plus a trailing segment for code after the last yield (which
+    // runs on the completing .next()).
+    const segments: any[][] = [];
+    let segStart = 0;
+    for (const b of boundaries) { segments.push(collectorSteps.slice(segStart, b)); segStart = b; }
+    segments.push(collectorSteps.slice(segStart));
+    gen.__segments = segments;
 
     // Restore steps and context
     ctx.steps = savedSteps;
@@ -858,6 +886,14 @@ function callGeneratorNext(gen: any, inputValue: any, ctx: ExecutionContext): { 
     for (const [k, v] of prevVars) ctx.variables.set(k, v);
 
     gen.__state = 'suspended-yield';
+  }
+
+  // Replay this .next()'s segment into the live step stream (the real run, or
+  // the parent generator's collector when this generator is delegated via yield*).
+  if (gen.__segments && gen.__segIndex < gen.__segments.length) {
+    const seg = gen.__segments[gen.__segIndex];
+    for (const s of seg) ctx.steps.push(s);
+    gen.__segIndex++;
   }
 
   // Return next yield value
