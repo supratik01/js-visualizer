@@ -545,7 +545,9 @@ export const REALMS = {
 export const JOBS = {
   spec: "§9.5",
   description:
-    "A Job is a specification mechanism for representing work to be done. The host enqueues jobs; ECMAScript defines when and how they run.",
+    "A Job is a specification mechanism for representing work to be done. The host enqueues jobs; ECMAScript defines when and how they run. " +
+    "NOTE (sourcing): ECMA-262 §9.5 defines Jobs and the host HOOKS (HostEnqueuePromiseJob, HostEnqueueTimeoutJob, HostEnqueueGenericJob) only. " +
+    "The event loop itself, the task queue, and the microtask queue are defined by the WHATWG HTML spec (§8.1.7), not ECMA-262.",
 
   jobTypes: {
     PromiseJob:
@@ -553,7 +555,7 @@ export const JOBS = {
     GenericJob:
       "Scheduled via HostEnqueueGenericJob. Implementation-defined.",
     TimeoutJob:
-      "Scheduled via HostEnqueueTimeoutJob with milliseconds delay. Corresponds to setTimeout.",
+      "ECMA-262 host hook HostEnqueueTimeoutJob (delay in ms). The setTimeout/setInterval algorithm, timer task source, and 4ms nesting clamp are defined by WHATWG HTML §8.6, not ECMA-262.",
   },
 
   jobCallbackRecord: {
@@ -1141,9 +1143,9 @@ export const FUNCTION_SEMANTICS = {
       "7. When the body completes, the outer promise is resolved/rejected.",
     ],
     awaitEquivalent:
-      "await x is roughly Promise.resolve(x).then(continuation), but with proper this binding.",
+      "await x is roughly Promise.resolve(x).then(continuation), but with proper this binding. NOTE: for a native promise this is a single microtask tick; awaiting a THENABLE adds an extra tick (PromiseResolveThenableJob) — see promiseSpec.promiseResolve.thenableAssimilation.",
     topLevelAwait:
-      "Allowed in module scope (makes the module evaluation a Promise).",
+      "ES2022. Allowed in module scope; makes module evaluation itself async (Evaluate() returns a promise). Mechanism: a module with [[HasTLA]] runs via ExecuteAsyncModule -> AsyncBlockStart (same await machinery as async functions), suspending module evaluation with the continuation scheduled as a microtask. On completion, AsyncModuleExecutionFulfilled resolves the module's [[TopLevelCapability]] and GatherAvailableAncestors unblocks dependent modules whose pending-async count reaches zero; a throw triggers AsyncModuleExecutionRejected.",
     errorPropagation:
       "An uncaught throw inside async functions rejects the returned Promise.",
   },
@@ -2016,7 +2018,7 @@ export const CONTROL_ABSTRACTION = {
   },
 
   promiseSpec: {
-    spec: "§26.6",
+    spec: "§27.2",
     internalSlots: {
       "[[PromiseState]]": "'pending' | 'fulfilled' | 'rejected'",
       "[[PromiseResult]]":
@@ -2217,13 +2219,36 @@ export const SPEC_TO_VISUALIZER_MAP = {
   },
 
   taskQueue: {
-    specConcept: "HostEnqueueTimeoutJob (§9.5.6)",
+    // B1 — The task queue is defined by the WHATWG HTML event loop, NOT ECMA-262.
+    // ECMA-262 only provides the host hook (HostEnqueueTimeoutJob); the queue,
+    // the timer task source, and run order are HTML §8.1.7 / §8.6.
+    specConcept: "WHATWG HTML event loop — task queue (§8.1.7)",
+    ecma262Hook: "HostEnqueueTimeoutJob (ECMA-262 host hook; timer mapping is HTML §8.6)",
     sources: ["setTimeout callback", "setInterval callback", "I/O callbacks", "User events"],
     behavior: "One task runs to completion per event loop iteration.",
+    // A2 — processing model (HTML §8.1.7.3): a task queue is a SET, not a FIFO
+    // queue. The loop picks an implementation-chosen queue with at least one
+    // runnable task and runs its FIRST RUNNABLE task (not a strict global FIFO).
+    // Ordering is guaranteed only within a single task source.
+    processingModel:
+      "Each turn: choose a task queue with >=1 runnable task (implementation-defined), " +
+      "take and remove its first runnable task, run it to completion, then perform a " +
+      "microtask checkpoint. A task queue is a set, so selection is per-queue, not a " +
+      "single global FIFO; ordering is guaranteed only within one task source.",
+    // A1 — setTimeout/setInterval clamping (HTML §8.6 timer init steps).
+    timerClamping:
+      "Negative timeout -> 0. Timer nesting level is tracked across nested setTimeout " +
+      "and repeating setInterval; if nesting level > 5 and timeout < 4, timeout is " +
+      "clamped to 4ms. So setTimeout(fn, 0) deep inside nested timers is really >=4ms — " +
+      "the delay is a minimum, and the callback still waits behind the microtask drain.",
   },
 
   microtaskQueue: {
-    specConcept: "HostEnqueuePromiseJob (§9.5.5)",
+    // B1 — The microtask queue is a WHATWG HTML concept. ECMA-262 supplies the
+    // PromiseJob host hook (HostEnqueuePromiseJob); HTML defines the queue and
+    // the "perform a microtask checkpoint" drain algorithm (§8.1.7).
+    specConcept: "WHATWG HTML event loop — microtask queue (§8.1.7)",
+    ecma262Hook: "HostEnqueuePromiseJob (ECMA-262 host hook for Promise reaction jobs)",
     sources: [
       "Promise.then/catch/finally callbacks",
       "await resumption points",
@@ -2231,6 +2256,13 @@ export const SPEC_TO_VISUALIZER_MAP = {
     ],
     behavior:
       "ALL microtasks are drained (including newly added ones) before the next task starts.",
+    // A2 — the checkpoint dequeues FIFO (unlike the task queue's first-runnable
+    // selection) and loops while the queue is non-empty, guarded by a reentrancy flag.
+    microtaskCheckpoint:
+      "perform a microtask checkpoint (HTML §8.1.7): while the microtask queue is not " +
+      "empty, DEQUEUE the oldest microtask (FIFO) and run it — fully draining the queue, " +
+      "including microtasks queued during the checkpoint. A 'performing a microtask " +
+      "checkpoint' boolean prevents reentrant invocation.",
   },
 
   environmentRecord: {
@@ -2240,7 +2272,7 @@ export const SPEC_TO_VISUALIZER_MAP = {
   },
 
   promiseState: {
-    specConcept: "[[PromiseState]] internal slot (§26.6)",
+    specConcept: "[[PromiseState]] internal slot (§27.2)",
     states: {
       pending: "Gray/yellow indicator — waiting for resolution.",
       fulfilled: "Green indicator — has a value.",
@@ -2312,9 +2344,9 @@ export const SPEC_SECTION_INDEX: Record<string, { section: string; url: string; 
   "FinalizationRegistry":    { section: "§25.2",  url: "https://tc39.es/ecma262/#sec-finalization-registry-objects", description: "GC callbacks" },
   "Iterator Protocol":       { section: "§26.1",  url: "https://tc39.es/ecma262/#sec-iteration", description: "Iterator and iterable protocols" },
   "Generator Protocol":      { section: "§26.4",  url: "https://tc39.es/ecma262/#sec-generator-objects", description: "Generator state machine" },
-  "Promise":                 { section: "§26.6",  url: "https://tc39.es/ecma262/#sec-promise-objects", description: "Promise state machine and combinators" },
-  "Proxy":                   { section: "§27.1",  url: "https://tc39.es/ecma262/#sec-proxy-objects", description: "Proxy traps and invariants" },
-  "Reflect":                 { section: "§27.2",  url: "https://tc39.es/ecma262/#sec-reflect-object", description: "Reflect methods" },
+  "Promise":                 { section: "§27.2",  url: "https://tc39.es/ecma262/#sec-promise-objects", description: "Promise state machine and combinators" },
+  "Proxy":                   { section: "§28.2",  url: "https://tc39.es/ecma262/#sec-proxy-objects", description: "Proxy traps and invariants" },
+  "Reflect":                 { section: "§28.1",  url: "https://tc39.es/ecma262/#sec-reflect-object", description: "Reflect methods" },
 };
 
 export default {
