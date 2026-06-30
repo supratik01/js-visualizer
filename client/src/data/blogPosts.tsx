@@ -15,6 +15,82 @@ export interface BlogPost {
 
 /* ─── Reusable components for blog content ────────────────────────── */
 
+const JS_KEYWORDS = new Set([
+  'const', 'let', 'var', 'function', 'return', 'await', 'async', 'if', 'else', 'for',
+  'while', 'do', 'new', 'class', 'extends', 'yield', 'of', 'in', 'typeof', 'instanceof',
+  'try', 'catch', 'finally', 'throw', 'switch', 'case', 'break', 'continue', 'default',
+  'this', 'super', 'import', 'export', 'from', 'using', 'static', 'get', 'set',
+  'true', 'false', 'null', 'undefined', 'void', 'delete',
+]);
+
+/**
+ * Lightweight JS syntax highlighter for blog code blocks. Single-pass tokenizer
+ * (string-aware, so `//` inside a string is not mistaken for a comment) that
+ * colors comments, strings, numbers, and keywords distinctly from plain code.
+ */
+function highlightCode(code: string): ReactNode[] {
+  const result: ReactNode[] = [];
+  let k = 0;
+  const push = (cls: string, text: string) => {
+    if (text) result.push(<span key={k++} className={cls}>{text}</span>);
+  };
+  const pushPlain = (text: string) => {
+    if (!text) return;
+    // split into identifiers / numbers / everything else, keeping delimiters
+    for (const tok of text.split(/(\b[A-Za-z_$][A-Za-z0-9_$]*\b|\b\d[\w.]*\b)/)) {
+      if (!tok) continue;
+      if (JS_KEYWORDS.has(tok)) push('text-purple-400', tok);
+      else if (/^\d/.test(tok)) push('text-orange-300', tok);
+      else push('text-emerald-400', tok);
+    }
+  };
+
+  let inBlockComment = false;
+  const lines = code.split('\n');
+  lines.forEach((line, li) => {
+    let i = 0;
+    while (i < line.length) {
+      if (inBlockComment) {
+        const end = line.indexOf('*/', i);
+        if (end === -1) { push('text-zinc-500 italic', line.slice(i)); i = line.length; }
+        else { push('text-zinc-500 italic', line.slice(i, end + 2)); i = end + 2; inBlockComment = false; }
+        continue;
+      }
+      const two = line.slice(i, i + 2);
+      if (two === '//') { push('text-zinc-500 italic', line.slice(i)); i = line.length; continue; }
+      if (two === '/*') {
+        const end = line.indexOf('*/', i + 2);
+        if (end === -1) { push('text-zinc-500 italic', line.slice(i)); inBlockComment = true; i = line.length; }
+        else { push('text-zinc-500 italic', line.slice(i, end + 2)); i = end + 2; }
+        continue;
+      }
+      const ch = line[i];
+      if (ch === '"' || ch === "'" || ch === '`') {
+        let j = i + 1;
+        while (j < line.length) {
+          if (line[j] === '\\') { j += 2; continue; }
+          if (line[j] === ch) { j++; break; }
+          j++;
+        }
+        push('text-amber-300', line.slice(i, j));
+        i = j;
+        continue;
+      }
+      // plain run up to the next string/comment delimiter
+      let j = i + 1;
+      while (j < line.length) {
+        const c = line[j], t = line.slice(j, j + 2);
+        if (c === '"' || c === "'" || c === '`' || t === '//' || t === '/*') break;
+        j++;
+      }
+      pushPlain(line.slice(i, j));
+      i = j;
+    }
+    if (li < lines.length - 1) result.push(<span key={k++}>{'\n'}</span>);
+  });
+  return result;
+}
+
 function CodeBlock({ children, title }: { children: string; title?: string }) {
   return (
     <div className="my-6">
@@ -24,7 +100,7 @@ function CodeBlock({ children, title }: { children: string; title?: string }) {
         </div>
       )}
       <pre className={`bg-zinc-900 border border-zinc-800 ${title ? 'rounded-b-lg' : 'rounded-lg'} p-4 overflow-x-auto text-sm font-mono text-emerald-400 leading-relaxed`}>
-        <code>{children}</code>
+        <code>{highlightCode(children)}</code>
       </pre>
     </div>
   );
@@ -62,6 +138,283 @@ function TryItLink({ code, label }: { code?: string; label?: string }) {
 /* ─── Blog posts ──────────────────────────────────────────────────── */
 
 export const blogPosts: BlogPost[] = [
+  {
+    slug: 'new-javascript-features-es2026',
+    title: '9 New JavaScript Features in ES2026 (Including the Two Everyone Was Waiting For)',
+    metaTitle: 'New JavaScript Features in ES2026 — Temporal, using, and More (2026)',
+    metaDescription: 'A practical tour of the new JavaScript features finalized in ES2026 — Temporal, explicit resource management (using), Array.fromAsync, Promise.try, Math.sumPrecise, Error.isError, and more — with code examples and the runtime details that matter.',
+    publishedAt: '2026-06-30',
+    readingTime: '11 min read',
+    tags: ['JavaScript', 'ES2026', 'TC39', 'Features'],
+    excerpt: 'ES2026 is finalized — and the two features developers have wanted for years, Temporal and the using keyword, finally made the cut. Here are nine additions worth knowing, with a focus on the ones that actually change how your code runs.',
+    content: (
+      <>
+        <p>
+          JavaScript ships on a yearly cadence now, and <strong>ES2026</strong> was finalized by TC39 in
+          early 2026. Most of these features are already landing in modern browsers and Node.js, so they're
+          not "someday" — they're "this year." The headline: the <em>two</em> features developers have asked
+          for over and over, <strong>Temporal</strong> and the <strong><code>using</code> keyword</strong>,
+          both reached Stage 4 and are in.
+        </p>
+
+        <p>
+          We pay close attention to each release because we keep{' '}
+          <a href="/" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">JS Visualizer</a>{' '}
+          accurate against the spec. So here's a practical tour of nine ES2026 additions — with a note on
+          which ones change <em>runtime behavior</em> (scheduling, the event loop) versus which are
+          quality-of-life value APIs.
+        </p>
+
+        <h2 id="temporal" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          1. Temporal — a real date & time API
+        </h2>
+
+        <p>
+          The single biggest addition. <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Date</code>{' '}
+          has been broken for decades — mutable, timezone-ambiguous, off-by-one on parsing.{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Temporal</code> replaces it
+          with explicit, immutable types.
+        </p>
+
+        <CodeBlock title="temporal.js">{`// Old: ambiguous and mutable
+const d = new Date("2026-03-30"); // may be "yesterday" in your timezone
+d.setMonth(d.getMonth() + 1);     // can skip a month near month-end
+
+// New: explicit, immutable, unambiguous
+const today    = Temporal.Now.plainDateISO();
+const birthday = Temporal.PlainDate.from("1987-07-23");
+const meeting  = Temporal.ZonedDateTime.from(
+  "2026-11-03T10:00:00[Europe/Warsaw]"
+);
+const nextMonth = today.add({ months: 1 }); // returns a new value`}</CodeBlock>
+
+        <Callout type="info">
+          Separate types (<code>PlainDate</code>, <code>PlainTime</code>, <code>PlainDateTime</code>,{' '}
+          <code>ZonedDateTime</code>, <code>Duration</code>, <code>Instant</code>) mean the type system tells
+          you whether a value carries a timezone. Moment.js, date-fns, and Luxon become largely optional.
+        </Callout>
+
+        <h2 id="using" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          2. Explicit Resource Management — the <code>using</code> keyword
+        </h2>
+
+        <p>
+          The other long-awaited feature. <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">using</code>{' '}
+          (and <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">await using</code>)
+          gives deterministic cleanup when a scope exits — like <code>with</code> in Python or{' '}
+          <code>using</code> in C#. A resource implements <code>[Symbol.dispose]()</code> (or{' '}
+          <code>[Symbol.asyncDispose]()</code>).
+        </p>
+
+        <CodeBlock title="using.js">{`// Before: manual try/finally
+const file = openFile("data.txt");
+try {
+  process(file);
+} finally {
+  file.close();
+}
+
+// After: automatic cleanup at end of scope
+using file = openFile("data.txt");
+process(file);
+// file[Symbol.dispose]() runs automatically when the block ends`}</CodeBlock>
+
+        <Callout type="tip">
+          Cleanup runs in <strong>reverse order</strong> of declaration (LIFO), and{' '}
+          <code>await using</code> awaits each async disposal. Most useful for file handles, DB connections,
+          locks, and stream subscriptions.
+        </Callout>
+
+        <h2 id="array-fromasync" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          3. Array.fromAsync — collect an async iterable
+        </h2>
+
+        <p>
+          The async counterpart to <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Array.from()</code>.
+          It awaits each value of an async iterable <em>in sequence</em> and resolves to an array — replacing
+          the manual <code>for await … push</code> loop.
+        </p>
+
+        <CodeBlock title="from-async.js">{`async function* pages() {
+  yield await fetchPage(1);
+  yield await fetchPage(2);
+}
+
+// Before
+const out = [];
+for await (const p of pages()) out.push(p);
+
+// After
+const all = await Array.fromAsync(pages());
+
+// Optional mapping, like Array.from's second arg
+const titles = await Array.fromAsync(pages(), p => p.title);`}</CodeBlock>
+
+        <Callout type="info">
+          <strong>Runtime note:</strong> each <code>await</code> here is a microtask resumption — the values
+          are collected one at a time, not in parallel. If you need concurrency, reach for{' '}
+          <code>Promise.all</code> instead. This is exactly the kind of ordering JS Visualizer animates.
+        </Callout>
+
+        <h2 id="promise-try" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          4. Promise.try — uniform sync/async error handling
+        </h2>
+
+        <p>
+          Call a function that <em>might</em> be sync or async and get a promise either way — with synchronous
+          throws captured as rejections, no <code>try/catch</code> wrapper needed.
+        </p>
+
+        <CodeBlock title="promise-try.js">{`// Catches both sync throws and async rejections uniformly
+Promise.try(() => mightThrowOrReturnAPromise())
+  .then(handle)
+  .catch(onError);`}</CodeBlock>
+
+        <p>
+          The callback runs synchronously, but <code>.then</code>/<code>.catch</code> fire as{' '}
+          <strong>microtasks</strong> — the same scheduling rule behind why a Promise callback always beats a{' '}
+          <code>setTimeout(fn, 0)</code>. If that ordering isn't second nature yet, watch it run:
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`console.log('sync start');\nsetTimeout(() => console.log('macrotask'), 0);\nPromise.resolve().then(() => console.log('microtask'));\nconsole.log('sync end');`}
+            label="See microtask vs macrotask ordering in JS Visualizer"
+          />
+        </Callout>
+
+        <h2 id="iterator-helpers" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          5. Iterator helpers & Iterator sequencing
+        </h2>
+
+        <p>
+          Lazy <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">.map()</code>,{' '}
+          <code>.filter()</code>, <code>.take()</code>, <code>.drop()</code>, and friends now work directly on
+          any iterator — processing one element at a time without building intermediate arrays. Iterator
+          sequencing adds <code>Iterator.concat()</code> to chain multiple iterators lazily.
+        </p>
+
+        <CodeBlock title="iterator-helpers.js">{`function* naturals() { let n = 1; while (true) yield n++; }
+
+// Lazy: never materializes an infinite array
+const firstThreeSquares = naturals()
+  .map(n => n * n)
+  .take(3)
+  .toArray(); // [1, 4, 9]
+
+const combined = Iterator.concat([1, 2], [3, 4]); // lazy chain`}</CodeBlock>
+
+        <h2 id="math-sumprecise" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          6. Math.sumPrecise — floating-point summation done right
+        </h2>
+
+        <p>
+          Summing floats with <code>.reduce((a, b) =&gt; a + b)</code> accumulates rounding error.{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Math.sumPrecise()</code> uses
+          a compensated algorithm for a correct result.
+        </p>
+
+        <CodeBlock title="sum-precise.js">{`[0.1, 0.2].reduce((a, b) => a + b); // 0.30000000000000004
+Math.sumPrecise([0.1, 0.2]);        // 0.3`}</CodeBlock>
+
+        <p className="text-sm text-zinc-400">
+          Matters most for finance, statistics, and simulations where errors compound over many operations.
+        </p>
+
+        <h2 id="error-iserror" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          7. Error.isError — reliable cross-realm error checks
+        </h2>
+
+        <p>
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">value instanceof Error</code>{' '}
+          returns <code>false</code> for errors that crossed a realm boundary (iframe, Worker, vm context).{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Error.isError(value)</code>{' '}
+          is the reliable check.
+        </p>
+
+        <CodeBlock title="is-error.js">{`Error.isError(new TypeError("boom")); // true
+Error.isError({ message: "fake" });   // false — not a real Error
+// Works even for an Error created in another realm`}</CodeBlock>
+
+        <h2 id="uint8array-base64" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          8. Uint8Array ↔ Base64 / Hex
+        </h2>
+
+        <p>
+          First-class binary-to-text conversion, replacing the awkward{' '}
+          <code>btoa(String.fromCharCode(...bytes))</code> dance.
+        </p>
+
+        <CodeBlock title="base64.js">{`const bytes = new Uint8Array(await blob.arrayBuffer());
+
+const b64 = bytes.toBase64();        // declarative
+const hex = bytes.toHex();
+const back = Uint8Array.fromBase64(b64);`}</CodeBlock>
+
+        <h2 id="map-getorinsert" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          9. Map.getOrInsert — the upsert pattern
+        </h2>
+
+        <p>
+          Kills the <code>has</code> → <code>set</code> → <code>get</code> boilerplate that shows up in every
+          grouping and caching routine.
+        </p>
+
+        <CodeBlock title="get-or-insert.js">{`// Before
+if (!map.has(key)) map.set(key, []);
+map.get(key).push(item);
+
+// After
+map.getOrInsert(key, []).push(item);
+
+// Lazy default (only built when the key is missing)
+map.getOrInsertComputed(key, () => expensiveDefault()).push(item);`}</CodeBlock>
+
+        <h2 id="runtime-lens" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The runtime lens: which of these change <em>ordering</em>?
+        </h2>
+
+        <p>
+          Most of ES2026 is new <em>values</em> and <em>methods</em> — they don't touch the event loop. But a
+          few change <strong>when</strong> code runs:
+        </p>
+
+        <ul className="my-4 space-y-2 text-sm text-zinc-300">
+          <li className="flex gap-2">• <strong className="text-cyan-400">Array.fromAsync</strong> — sequential <code>await</code>s, each a microtask resumption.</li>
+          <li className="flex gap-2">• <strong className="text-cyan-400">Promise.try</strong> — sync callback now, reactions as microtasks.</li>
+          <li className="flex gap-2">• <strong className="text-cyan-400">await using</strong> — async disposal awaited (LIFO) as the scope unwinds.</li>
+        </ul>
+
+        <p>
+          The other six are pure value APIs — no scheduling impact. When a feature <em>does</em> affect
+          ordering, the fastest way to build intuition is to watch the call stack, microtask queue, and task
+          queue move in real time.
+        </p>
+
+        <div className="my-8 flex justify-center">
+          <TryItLink label="Open JS Visualizer — watch async code run, free" />
+        </div>
+
+        <h2 id="whats-next" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          What's still cooking
+        </h2>
+
+        <p>
+          A few proposals are close but not yet finalized — including richer{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">JSON.parse</code> source-text
+          access (Stage 3) for round-tripping huge integers via <code>BigInt</code> without precision loss.
+          Worth watching for ES2027.
+        </p>
+
+        <p>
+          Want the deeper "why" behind the async ones? Read the{' '}
+          <a href="/blogs/javascript-event-loop-explained" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">JavaScript Event Loop guide</a>{' '}
+          and{' '}
+          <a href="/blogs/microtask-vs-macrotask-javascript" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">Microtask vs Macrotask</a>.
+        </p>
+      </>
+    ),
+  },
   {
     slug: 'javascript-event-loop-explained',
     title: 'JavaScript Event Loop Explained — A Visual, Step-by-Step Guide',
