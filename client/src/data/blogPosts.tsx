@@ -194,6 +194,13 @@ const nextMonth = today.add({ months: 1 }); // returns a new value`}</CodeBlock>
           you whether a value carries a timezone. Moment.js, date-fns, and Luxon become largely optional.
         </Callout>
 
+        <Callout type="tip">
+          <TryItLink
+            code={`const jan31 = Temporal.PlainDate.from("2026-01-31");\nconsole.log(jan31.add({ months: 1 }).toString());   // constrain: 2026-02-28\nconsole.log(jan31.subtract({ months: 2 }).toString());\n\nconst meeting = Temporal.ZonedDateTime.from("2026-11-03T10:00:00[Europe/Warsaw]");\nconsole.log(meeting.toString());\n\nconsole.log(Temporal.Now.plainDateISO().toString());`}
+            label="Run Temporal date math in JS Visualizer"
+          />
+        </Callout>
+
         <h2 id="using" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
           2. Explicit Resource Management — the <code>using</code> keyword
         </h2>
@@ -225,6 +232,12 @@ process(file);
           locks, and stream subscriptions.
         </Callout>
 
+        <Callout type="warning">
+          <code className="text-amber-400">using</code> / <code className="text-amber-400">await using</code>{' '}
+          is new <em>syntax</em>, not just a new API — JS Visualizer's parser doesn't accept it yet, so these
+          snippets won't run in the visualizer for now.
+        </Callout>
+
         <h2 id="array-fromasync" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
           3. Array.fromAsync — collect an async iterable
         </h2>
@@ -254,6 +267,13 @@ const titles = await Array.fromAsync(pages(), p => p.title);`}</CodeBlock>
           <strong>Runtime note:</strong> each <code>await</code> here is a microtask resumption — the values
           are collected one at a time, not in parallel. If you need concurrency, reach for{' '}
           <code>Promise.all</code> instead. This is exactly the kind of ordering JS Visualizer animates.
+        </Callout>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`(async () => {\n  const a = await Array.fromAsync([Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)]);\n  console.log('values: ' + a.join(','));\n\n  const b = await Array.fromAsync([10, 20], x => x * 2);\n  console.log('mapped: ' + b.join(','));\n})();\nconsole.log('sync runs first');`}
+            label="Run Array.fromAsync in JS Visualizer"
+          />
         </Callout>
 
         <h2 id="promise-try" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
@@ -309,17 +329,38 @@ const combined = Iterator.concat([1, 2], [3, 4]); // lazy chain`}</CodeBlock>
         </h2>
 
         <p>
-          Summing floats with <code>.reduce((a, b) =&gt; a + b)</code> accumulates rounding error.{' '}
-          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Math.sumPrecise()</code> uses
-          a compensated algorithm for a correct result.
+          Summing floats with <code>.reduce((a, b) =&gt; a + b)</code> accumulates rounding error
+          across the intermediate sums.{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Math.sumPrecise()</code>{' '}
+          computes the sum as if with infinite precision, then rounds once at the end.
         </p>
 
-        <CodeBlock title="sum-precise.js">{`[0.1, 0.2].reduce((a, b) => a + b); // 0.30000000000000004
-Math.sumPrecise([0.1, 0.2]);        // 0.3`}</CodeBlock>
+        <CodeBlock title="sum-precise.js">{`// reduce loses the 0.1 entirely — absorbed by 1e20, then cancelled
+[1e20, 0.1, -1e20].reduce((a, b) => a + b); // 0
+Math.sumPrecise([1e20, 0.1, -1e20]);        // 0.1
+
+// drift across many additions disappears
+sum1000TenthsWithReduce();       // 99.9999999999986
+Math.sumPrecise(thousandTenths); // 100`}</CodeBlock>
+
+        <Callout type="warning">
+          It does <em>not</em> fix the classic <code>0.1 + 0.2</code> case —{' '}
+          <code className="text-amber-400">Math.sumPrecise([0.1, 0.2])</code> still returns{' '}
+          <code className="text-amber-400">0.30000000000000004</code>, because 0.1 and 0.2 are already
+          imprecise as floating-point <em>inputs</em>. sumPrecise eliminates error introduced{' '}
+          <em>during summation</em>, not error baked into the values themselves.
+        </Callout>
 
         <p className="text-sm text-zinc-400">
           Matters most for finance, statistics, and simulations where errors compound over many operations.
         </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`console.log([1e20, 0.1, -1e20].reduce((a, b) => a + b)); // 0 — the 0.1 is lost\nconsole.log(Math.sumPrecise([1e20, 0.1, -1e20]));        // 0.1\n\nconst t = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1];\nconsole.log(t.reduce((a, b) => a + b)); // 0.9999999999999999\nconsole.log(Math.sumPrecise(t));        // 1`}
+            label="Compare reduce vs sumPrecise in JS Visualizer"
+          />
+        </Callout>
 
         <h2 id="error-iserror" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
           7. Error.isError — reliable cross-realm error checks
@@ -370,6 +411,13 @@ map.getOrInsert(key, []).push(item);
 // Lazy default (only built when the key is missing)
 map.getOrInsertComputed(key, () => expensiveDefault()).push(item);`}</CodeBlock>
 
+        <Callout type="tip">
+          <TryItLink
+            code={`const opinions = new Map();\nopinions.getOrInsert('js', []).push('fun');\nopinions.getOrInsert('js', []).push('fast');\nconsole.log(opinions.get('js').join(', '));\n\nlet calls = 0;\nopinions.getOrInsertComputed('js', () => { calls++; return []; });\nconsole.log('computed callback ran ' + calls + ' times'); // 0 — key already exists`}
+            label="Run Map.getOrInsert in JS Visualizer"
+          />
+        </Callout>
+
         <h2 id="runtime-lens" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
           The runtime lens: which of these change <em>ordering</em>?
         </h2>
@@ -393,6 +441,42 @@ map.getOrInsertComputed(key, () => expensiveDefault()).push(item);`}</CodeBlock>
 
         <div className="my-8 flex justify-center">
           <TryItLink label="Open JS Visualizer — watch async code run, free" />
+        </div>
+
+        <h2 id="visualizer-support" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          What runs in JS Visualizer today
+        </h2>
+
+        <p>
+          Every "Try it" link above executes in our simulated runtime — so here's the honest support
+          status for these features, verified against real-engine behavior:
+        </p>
+
+        <div className="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border p-4 bg-emerald-500/5 border-emerald-500/20">
+            <h3 className="text-sm font-bold text-emerald-400 mb-2">✅ Simulated today</h3>
+            <ul className="text-xs text-zinc-400 leading-relaxed space-y-1">
+              <li>• <code>Math.sumPrecise</code></li>
+              <li>• <code>Error.isError</code></li>
+              <li>• <code>Map.getOrInsert</code> / <code>getOrInsertComputed</code></li>
+              <li>• <code>Uint8Array</code> <code>toBase64/fromBase64/toHex/fromHex</code> (incl. <code>base64url</code>, <code>omitPadding</code>)</li>
+              <li>• <code>Array.fromAsync</code> — arrays, promise arrays, Set/Map, strings, sync generators, <code>mapFn</code></li>
+              <li>• <code>Promise.try</code> — incl. forwarded args and sync throws → rejections</li>
+              <li>• <code>Temporal</code> core: <code>PlainDate</code> (<code>from/add/subtract/toString/equals/compare</code> + properties), <code>ZonedDateTime.from</code> + <code>toString</code> (real IANA offsets), <code>Temporal.Now</code>, <code>Instant</code> basics</li>
+            </ul>
+          </div>
+          <div className="rounded-lg border p-4 bg-red-500/5 border-red-500/20">
+            <h3 className="text-sm font-bold text-red-400 mb-2">⛔ Not simulated yet</h3>
+            <ul className="text-xs text-zinc-400 leading-relaxed space-y-1">
+              <li>• <code>using</code> / <code>await using</code> — new syntax; our parser doesn't accept it yet</li>
+              <li>• <code>Temporal.Duration</code>, <code>.with()</code>, <code>.until()/.since()</code>, non-ISO calendars, and exact DST-transition offsets</li>
+              <li>• <code>Array.fromAsync</code> with an <em>async generator</em> as input</li>
+              <li>• Iterator helpers beyond the basics (<code>Iterator.concat</code> is partial)</li>
+            </ul>
+            <p className="text-[11px] text-zinc-500 mt-2">
+              Unsupported calls degrade gracefully — you'll see a console note instead of a crash.
+            </p>
+          </div>
         </div>
 
         <h2 id="whats-next" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
