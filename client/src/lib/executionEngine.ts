@@ -447,6 +447,9 @@ function formatValue(value: any): string {
     if (value.__type === 'Proxy') return `Proxy {${formatValue(value.__target)}}`;
     if (value.__type === 'BigInt') return `${value.__value}n`;
     if (value.__type === 'TypedArray') return `${value.__arrayType}(${value.__length}) [${(value.__data as number[]).join(', ')}]`;
+    if (value.__type === 'TemporalPlainDate') return `Temporal.PlainDate <${temporalPlainDateToString(value)}>`;
+    if (value.__type === 'TemporalZonedDateTime') return `Temporal.ZonedDateTime <${temporalZonedToString(value)}>`;
+    if (value.__type === 'TemporalInstant') return `Temporal.Instant <${temporalInstantToString(value)}>`;
     if (value.__type === 'ArrayBuffer') return `ArrayBuffer { byteLength: ${value.__byteLength} }`;
     if (value.__type === 'DataView') return `DataView { byteLength: ${value.__buffer?.__byteLength || 0}, byteOffset: ${value.__byteOffset || 0} }`;
     if (value.__type === 'Intl.NumberFormat') return `Intl.NumberFormat [${value.__locale}]`;
@@ -501,6 +504,87 @@ function getCallbackBody(node: any): any {
     return node.body;
   }
   return null;
+}
+
+// ─── Temporal (ES2026) — scoped simulation helpers ─────────────────────────
+// Supported subset: PlainDate (from/add/subtract/toString/equals/compare +
+// year/month/day/dayOfWeek/daysInMonth), ZonedDateTime.from (bracketed-tz
+// string) + toString/properties, Instant via Temporal.Now.instant(),
+// Temporal.Now.plainDateISO(). Everything else is intentionally unsupported.
+
+function temporalDaysInMonth(y: number, m: number): number {
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+function temporalPad(n: number, w = 2): string {
+  const s = String(Math.abs(n));
+  return (n < 0 ? '-' : '') + s.padStart(w, '0');
+}
+
+function temporalPlainDateToString(d: any): string {
+  return `${temporalPad(d.year, 4)}-${temporalPad(d.month)}-${temporalPad(d.day)}`;
+}
+
+// Calendar add with 'constrain' overflow (spec default): years+months first,
+// clamp day to the target month's length, then apply weeks+days as exact days.
+function temporalPlainDateAdd(d: any, dur: any, sign: 1 | -1): any {
+  const years = (Number(dur?.years) || 0) * sign;
+  const months = (Number(dur?.months) || 0) * sign;
+  const weeks = (Number(dur?.weeks) || 0) * sign;
+  const days = (Number(dur?.days) || 0) * sign;
+  let y = d.year + years;
+  const mTotal = (d.month - 1) + months;
+  y += Math.floor(mTotal / 12);
+  const m = ((mTotal % 12) + 12) % 12 + 1;
+  const dd = Math.min(d.day, temporalDaysInMonth(y, m)); // constrain
+  const dt = new Date(Date.UTC(y, m - 1, dd));
+  dt.setUTCDate(dt.getUTCDate() + days + weeks * 7);
+  return { __type: 'TemporalPlainDate', year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate() };
+}
+
+// Parse a PlainDate from a string ("YYYY-MM-DD", trailing time ignored per
+// spec), a { year, month, day } object, or another PlainDate. null = invalid.
+function temporalParsePlainDate(input: any): any | null {
+  if (input && typeof input === 'object') {
+    if (input.__type === 'TemporalPlainDate') return { ...input };
+    if (input.__type === 'TemporalZonedDateTime') return { __type: 'TemporalPlainDate', year: input.year, month: input.month, day: input.day };
+    const y = Number(input.year), m = Number(input.month), d = Number(input.day);
+    if (Number.isInteger(y) && Number.isInteger(m) && Number.isInteger(d) && m >= 1 && m <= 12 && d >= 1 && d <= temporalDaysInMonth(y, m)) {
+      return { __type: 'TemporalPlainDate', year: y, month: m, day: d };
+    }
+    return null;
+  }
+  if (typeof input === 'string') {
+    const mm = input.match(/^([+-]?\d{4,6})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+    if (!mm) return null;
+    const y = Number(mm[1]), mo = Number(mm[2]), d = Number(mm[3]);
+    if (mo < 1 || mo > 12 || d < 1 || d > temporalDaysInMonth(y, mo)) return null;
+    return { __type: 'TemporalPlainDate', year: y, month: mo, day: d };
+  }
+  return null;
+}
+
+// UTC-offset string for a wall-clock moment in an IANA zone, via the host's
+// Intl tz data. Approximate at DST transitions (documented limitation).
+function temporalTzOffset(y: number, mo: number, d: number, h: number, mi: number, tz: string): string {
+  try {
+    const dt = new Date(Date.UTC(y, mo - 1, d, h, mi));
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(dt);
+    const name = parts.find(p => p.type === 'timeZoneName')?.value || '';
+    if (name === 'GMT') return '+00:00';
+    const m = name.match(/GMT([+-]\d{2}:\d{2})/);
+    return m ? m[1] : '';
+  } catch { return ''; }
+}
+
+function temporalZonedToString(z: any): string {
+  const date = `${temporalPad(z.year, 4)}-${temporalPad(z.month)}-${temporalPad(z.day)}`;
+  const time = `${temporalPad(z.hour)}:${temporalPad(z.minute)}:${temporalPad(z.second)}`;
+  return `${date}T${time}${z.offset || ''}[${z.timeZoneId}]`;
+}
+
+function temporalInstantToString(ins: any): string {
+  return new Date(ins.epochMs).toISOString().replace('.000Z', 'Z');
 }
 
 function createPromise(ctx: ExecutionContext, state: PromiseState = 'pending', value?: any, error?: any): string {
@@ -1593,6 +1677,37 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
         if (prop === 'size' && (obj.__type === 'Map' || obj.__type === 'Set')) {
           return obj.__type === 'Map' ? obj.__mapSize : obj.__setSize;
         }
+        // Temporal (ES2026) readable properties
+        if (obj.__type === 'TemporalPlainDate') {
+          switch (prop) {
+            case 'year': return obj.year;
+            case 'month': return obj.month;
+            case 'day': return obj.day;
+            case 'dayOfWeek': { // ISO: 1 = Monday … 7 = Sunday
+              const wd = new Date(Date.UTC(obj.year, obj.month - 1, obj.day)).getUTCDay();
+              return ((wd + 6) % 7) + 1;
+            }
+            case 'daysInMonth': return temporalDaysInMonth(obj.year, obj.month);
+            case 'monthCode': return `M${temporalPad(obj.month)}`;
+            case 'calendarId': return 'iso8601';
+          }
+        }
+        if (obj.__type === 'TemporalZonedDateTime') {
+          switch (prop) {
+            case 'year': return obj.year;
+            case 'month': return obj.month;
+            case 'day': return obj.day;
+            case 'hour': return obj.hour;
+            case 'minute': return obj.minute;
+            case 'second': return obj.second;
+            case 'timeZoneId': return obj.timeZoneId;
+            case 'offset': return obj.offset;
+            case 'calendarId': return 'iso8601';
+          }
+        }
+        if (obj.__type === 'TemporalInstant') {
+          if (prop === 'epochMilliseconds') return obj.epochMs;
+        }
         // Date instance methods
         if (obj.__type === 'Date' && obj.__date) {
           const d = obj.__date as Date;
@@ -1998,6 +2113,70 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
       }
     }
 
+    // Temporal (ES2026) static methods — calls shaped Temporal.X.method(...)
+    if (objNode?.type === 'MemberExpression' && objNode.object?.type === 'Identifier' && objNode.object.name === 'Temporal') {
+      const tClass = objNode.property?.name;
+      const tArgs = evaluateArguments(node.arguments, ctx);
+      if (tClass === 'Now') {
+        if (propName === 'plainDateISO') {
+          const now = new Date(); // system timezone, per spec default
+          return { __type: 'TemporalPlainDate', year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+        }
+        if (propName === 'instant') return { __type: 'TemporalInstant', epochMs: Date.now() };
+      }
+      if (tClass === 'PlainDate') {
+        if (propName === 'from') {
+          const parsed = temporalParsePlainDate(tArgs[0]);
+          if (!parsed) {
+            ctx.thrownError = { type: 'Error', name: 'RangeError', message: `invalid ISO 8601 date: ${formatValue(tArgs[0])}` };
+            ctx.hasThrown = true;
+            return undefined;
+          }
+          return parsed;
+        }
+        if (propName === 'compare') {
+          const a = temporalParsePlainDate(tArgs[0]);
+          const b = temporalParsePlainDate(tArgs[1]);
+          if (!a || !b) return 0; // graceful
+          const av = a.year * 10000 + a.month * 100 + a.day;
+          const bv = b.year * 10000 + b.month * 100 + b.day;
+          return av < bv ? -1 : av > bv ? 1 : 0;
+        }
+      }
+      if (tClass === 'ZonedDateTime' && propName === 'from') {
+        const s = tArgs[0];
+        const m = typeof s === 'string'
+          ? s.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?\[([^\]]+)\]$/)
+          : null;
+        if (!m) {
+          ctx.thrownError = { type: 'Error', name: 'RangeError', message: `invalid RFC 9557 string: ${formatValue(s)}` };
+          ctx.hasThrown = true;
+          return undefined;
+        }
+        const [, y, mo, d, h, mi, se, tz] = m;
+        const z: any = {
+          __type: 'TemporalZonedDateTime',
+          year: Number(y), month: Number(mo), day: Number(d),
+          hour: Number(h), minute: Number(mi), second: Number(se || 0),
+          timeZoneId: tz,
+        };
+        z.offset = temporalTzOffset(z.year, z.month, z.day, z.hour, z.minute, tz);
+        return z;
+      }
+      if (tClass === 'Instant' && propName === 'from') {
+        const t = Date.parse(String(tArgs[0] ?? ''));
+        if (Number.isNaN(t)) {
+          ctx.thrownError = { type: 'Error', name: 'RangeError', message: `invalid instant: ${formatValue(tArgs[0])}` };
+          ctx.hasThrown = true;
+          return undefined;
+        }
+        return { __type: 'TemporalInstant', epochMs: t };
+      }
+      // Unsupported Temporal API — graceful, never crash
+      ctx.steps.push({ type: 'console', line, data: { type: 'warn' as any, value: `Temporal.${tClass}.${propName} is not simulated by JS Visualizer yet` } });
+      return undefined;
+    }
+
     if (objNode?.type === 'Identifier' && objNode.name === 'Promise') {
       ctx.steps.push({ type: 'highlight-line', line, data: { line } });
       if (propName === 'resolve') {
@@ -2043,6 +2222,17 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
             let result: any;
             if (cb && typeof cb === 'object' && (cb.type === 'ArrowFunctionExpression' || cb.type === 'FunctionExpression' || cb.type === 'FunctionDeclaration')) {
               result = callFunction(cb, extraArgs, 'Promise.try callback', ctx, line);
+              // The engine models thrown errors via ctx.hasThrown (not real JS
+              // exceptions), so a throwing callback would otherwise halt the whole
+              // program. Convert it to a rejected promise and clear the flag so
+              // execution continues — matching Promise.try semantics.
+              if (ctx.hasThrown) {
+                const err = ctx.thrownError;
+                ctx.hasThrown = false;
+                ctx.thrownError = undefined;
+                const rId = createPromise(ctx, 'rejected', undefined, err);
+                return { __promiseId: rId };
+              }
             } else {
               result = cb;
             }
@@ -2094,8 +2284,39 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
         case 'exp': return Math.exp(args[0]);
         case 'expm1': return Math.expm1(args[0]);
         case 'log1p': return Math.log1p(args[0]);
+        case 'sumPrecise': {
+          // ES2026 Math.sumPrecise(iterable). Empty -> -0. Uses host impl if
+          // available, else Neumaier compensated summation. Graceful: a
+          // non-iterable degrades to -0 rather than throwing.
+          const it = args[0];
+          let nums: any[];
+          if (Array.isArray(it)) nums = it;
+          else if (it && it.__type === 'TypedArray') nums = it.__data || [];
+          else if (it && it.__type === 'Set') nums = [...(it.__values || [])];
+          else if (it && typeof it.length === 'number') nums = Array.from({ length: it.length }, (_, i) => it[i]);
+          else nums = [];
+          const ns = nums.map(Number);
+          if (ns.length === 0) return -0;
+          const M = Math as any;
+          if (typeof M.sumPrecise === 'function') { try { return M.sumPrecise(ns); } catch { /* fall through */ } }
+          let sum = 0, c = 0;
+          for (const n of ns) {
+            const t = sum + n;
+            c += Math.abs(sum) >= Math.abs(n) ? (sum - t) + n : (n - t) + sum;
+            sum = t;
+          }
+          return sum + c;
+        }
         default: return 0;
       }
+    }
+
+    if (objNode?.type === 'Identifier' && objNode.name === 'Error' && propName === 'isError') {
+      // ES2026 Error.isError — brand check. Our engine models errors as
+      // { type: 'Error', name, message }, so detect that shape; plain objects
+      // (even with a message) and non-objects are not errors.
+      const v = node.arguments?.[0] ? evaluateExpression(node.arguments[0], ctx) : undefined;
+      return !!(v && typeof v === 'object' && v.type === 'Error');
     }
 
     if (objNode?.type === 'Identifier' && objNode.name === 'JSON') {
@@ -2203,9 +2424,69 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
       return { __type: 'Map', __entries: entries, __mapSize: entries.length };
     }
 
+    if (objNode?.type === 'Identifier' && objNode.name === 'Uint8Array' && (propName === 'fromBase64' || propName === 'fromHex')) {
+      // ES2026 static decoders -> return a simulated Uint8Array TypedArray.
+      const args = evaluateArguments(node.arguments, ctx);
+      let data: number[] = [];
+      if (propName === 'fromHex') {
+        const s = String(args[0] ?? '').trim();
+        for (let i = 0; i + 1 < s.length + 1 && i + 2 <= s.length; i += 2) {
+          const byte = parseInt(s.slice(i, i + 2), 16);
+          if (!Number.isNaN(byte)) data.push(byte & 0xff);
+        }
+      } else {
+        const opts = (args[1] && typeof args[1] === 'object') ? args[1] : {};
+        let s = String(args[0] ?? '');
+        if (opts.alphabet === 'base64url') s = s.replace(/-/g, '+').replace(/_/g, '/');
+        try {
+          const bin = typeof atob !== 'undefined' ? atob(s) : Buffer.from(s, 'base64').toString('binary');
+          data = Array.from(bin, ch => ch.charCodeAt(0) & 0xff);
+        } catch { data = []; }
+      }
+      return { __type: 'TypedArray', __arrayType: 'Uint8Array', __data: data, __length: data.length };
+    }
+
     if (objNode?.type === 'Identifier' && objNode.name === 'Array') {
       const args = evaluateArguments(node.arguments, ctx);
       if (propName === 'isArray') return Array.isArray(args[0]);
+      if (propName === 'fromAsync') {
+        // ES2026 Array.fromAsync — returns a Promise of the collected array,
+        // awaiting each value sequentially. We model the result: settle promise
+        // items to their resolved value, apply mapFn, and resolve a promise with
+        // the array. (Async-generator INPUT is a known limitation — best effort.)
+        const iterable = args[0];
+        const mapFn = args[1];
+        const settle = (v: any): any => {
+          if (v && typeof v === 'object' && v.__promiseId) {
+            const p = ctx.promises.get(v.__promiseId);
+            if (p && p.state === 'resolved') return p.value;
+            return undefined; // pending/rejected -> graceful
+          }
+          return v;
+        };
+        let raw: any[] = [];
+        if (typeof iterable === 'string') raw = iterable.split('');
+        else if (iterable?.__type === 'Set') raw = [...(iterable.__values || [])];
+        else if (iterable?.__type === 'Map') raw = [...(iterable.__entries || [])];
+        else if (iterable?.__type === 'TypedArray') raw = [...(iterable.__data || [])];
+        else if (Array.isArray(iterable)) raw = [...iterable];
+        else if (iterable?.__type === 'Generator') {
+          let guard = 0;
+          while (guard++ < 10000) { const r = callGeneratorNext(iterable, undefined, ctx); if (r.done) break; raw.push(r.value); }
+        }
+        else if (iterable?.__type === 'AsyncGenerator') raw = Array.isArray(iterable.__yieldValues) ? [...iterable.__yieldValues] : [];
+        else if (iterable && typeof iterable.length === 'number') raw = Array.from({ length: iterable.length }, (_, i) => iterable[i]);
+        const out: any[] = [];
+        for (let i = 0; i < raw.length; i++) {
+          let v = settle(raw[i]);
+          if (mapFn && typeof mapFn === 'object' && (mapFn.type === 'ArrowFunctionExpression' || mapFn.type === 'FunctionExpression' || mapFn.type === 'FunctionDeclaration')) {
+            v = settle(callFunction(mapFn, [v, i], 'Array.fromAsync callback', ctx, line));
+          }
+          out.push(v);
+        }
+        const pid = createPromise(ctx, 'resolved', out);
+        return { __promiseId: pid };
+      }
       if (propName === 'from') {
         try {
           const iterable = args[0];
@@ -2356,6 +2637,30 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
     }
 
     if (typeof objValue === 'object' && objValue !== null) {
+      // Temporal (ES2026) instance methods
+      if (objValue.__type === 'TemporalPlainDate') {
+        const tArgs = evaluateArguments(node.arguments, ctx);
+        if (propName === 'add') return temporalPlainDateAdd(objValue, tArgs[0] || {}, 1);
+        if (propName === 'subtract') return temporalPlainDateAdd(objValue, tArgs[0] || {}, -1);
+        if (propName === 'toString') return temporalPlainDateToString(objValue);
+        if (propName === 'equals') {
+          const other = temporalParsePlainDate(tArgs[0]);
+          return !!other && other.year === objValue.year && other.month === objValue.month && other.day === objValue.day;
+        }
+        ctx.steps.push({ type: 'console', line, data: { type: 'warn' as any, value: `Temporal.PlainDate.prototype.${propName} is not simulated by JS Visualizer yet` } });
+        return undefined;
+      }
+      if (objValue.__type === 'TemporalZonedDateTime') {
+        if (propName === 'toString') return temporalZonedToString(objValue);
+        ctx.steps.push({ type: 'console', line, data: { type: 'warn' as any, value: `Temporal.ZonedDateTime.prototype.${propName} is not simulated by JS Visualizer yet` } });
+        return undefined;
+      }
+      if (objValue.__type === 'TemporalInstant') {
+        if (propName === 'toString') return temporalInstantToString(objValue);
+        ctx.steps.push({ type: 'console', line, data: { type: 'warn' as any, value: `Temporal.Instant.prototype.${propName} is not simulated by JS Visualizer yet` } });
+        return undefined;
+      }
+
       // Phase 5B: Map method calls
       if (objValue.__type === 'Map') {
         const entries = objValue.__entries as Array<[any, any]>;
@@ -2380,6 +2685,28 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
           case 'keys': return entries.map(e => e[0]);
           case 'values': return entries.map(e => e[1]);
           case 'entries': return entries.map(e => [...e]);
+          case 'getOrInsert': {
+            // ES2026: return existing value, else insert defaultValue and return it
+            const key = methodArgs[0];
+            const found = entries.find(e => e[0] === key);
+            if (found) return found[1];
+            const def = methodArgs[1];
+            entries.push([key, def]); objValue.__mapSize++;
+            return def;
+          }
+          case 'getOrInsertComputed': {
+            // ES2026: callback runs ONLY when the key is missing; receives the key
+            const key = methodArgs[0];
+            const found = entries.find(e => e[0] === key);
+            if (found) return found[1];
+            const cb = methodArgs[1];
+            let computed: any = undefined;
+            if (cb && (cb.type === 'ArrowFunctionExpression' || cb.type === 'FunctionExpression' || cb.type === 'FunctionDeclaration')) {
+              computed = callFunction(cb, [key], 'getOrInsertComputed callback', ctx, line);
+            }
+            entries.push([key, computed]); objValue.__mapSize++;
+            return computed;
+          }
           case 'forEach': {
             const cb = methodArgs[0];
             if (cb && (cb.type === 'ArrowFunctionExpression' || cb.type === 'FunctionExpression')) {
@@ -2544,6 +2871,20 @@ function processCallExpression(node: any, ctx: ExecutionContext): any {
         const tData = objValue.__data as number[];
         const methodArgs = evaluateArguments(node.arguments, ctx);
         if (propName === 'length') return tData.length;
+        if (propName === 'toHex') {
+          return tData.map(b => (Number(b) & 0xff).toString(16).padStart(2, '0')).join('');
+        }
+        if (propName === 'toBase64') {
+          // ES2026 Uint8Array.prototype.toBase64({ alphabet, omitPadding })
+          const opts = (methodArgs[0] && typeof methodArgs[0] === 'object') ? methodArgs[0] : {};
+          let bin = '';
+          for (const b of tData) bin += String.fromCharCode(Number(b) & 0xff);
+          let out = '';
+          try { out = typeof btoa !== 'undefined' ? btoa(bin) : Buffer.from(tData as any).toString('base64'); } catch { out = ''; }
+          if (opts.alphabet === 'base64url') out = out.replace(/\+/g, '-').replace(/\//g, '_');
+          if (opts.omitPadding) out = out.replace(/=+$/, '');
+          return out;
+        }
         if (propName === 'set') {
           const srcArr = Array.isArray(methodArgs[0]) ? methodArgs[0] : (methodArgs[0]?.__data || []);
           const offset = methodArgs[1] || 0;
@@ -4074,8 +4415,17 @@ function processArrayMethod(arr: any[], method: string, argNodes: any[], ctx: Ex
     }
     case 'reduce': {
       const cb = evalCallback(argNodes[0]);
-      const initial = argNodes[1] ? evaluateExpression(argNodes[1], ctx) : undefined;
-      if (cb) return arr.reduce((acc, item, i) => executeCallback(cb, [acc, item, i, arr], ctx), initial);
+      const hasInitial = argNodes.length > 1;
+      const initial = hasInitial ? evaluateExpression(argNodes[1], ctx) : undefined;
+      if (cb) {
+        // Real reduce semantics: with no initial value, the first element seeds
+        // the accumulator and iteration starts at index 1. (Passing undefined as
+        // the seed corrupted numeric folds into string concatenation.)
+        if (!hasInitial && arr.length === 0) return undefined; // graceful (real JS throws)
+        return hasInitial
+          ? arr.reduce((acc, item, i) => executeCallback(cb, [acc, item, i, arr], ctx), initial)
+          : arr.reduce((acc, item, i) => executeCallback(cb, [acc, item, i, arr], ctx));
+      }
       return initial;
     }
     case 'find': {
@@ -4129,8 +4479,15 @@ function processArrayMethod(arr: any[], method: string, argNodes: any[], ctx: Ex
     case 'at': { const idx = evaluateExpression(argNodes[0], ctx); return arr.at(idx); }
     case 'reduceRight': {
       const cb = evalCallback(argNodes[0]);
-      const initial = argNodes[1] ? evaluateExpression(argNodes[1], ctx) : undefined;
-      if (cb) return arr.reduceRight((acc: any, item: any, i: number) => executeCallback(cb, [acc, item, i, arr], ctx), initial);
+      const hasInitial = argNodes.length > 1;
+      const initial = hasInitial ? evaluateExpression(argNodes[1], ctx) : undefined;
+      if (cb) {
+        // Same no-initial semantics fix as reduce (last element seeds, iterate down)
+        if (!hasInitial && arr.length === 0) return undefined; // graceful (real JS throws)
+        return hasInitial
+          ? arr.reduceRight((acc: any, item: any, i: number) => executeCallback(cb, [acc, item, i, arr], ctx), initial)
+          : arr.reduceRight((acc: any, item: any, i: number) => executeCallback(cb, [acc, item, i, arr], ctx));
+      }
       return initial;
     }
     case 'findLast': {
