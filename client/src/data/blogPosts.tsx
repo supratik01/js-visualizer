@@ -121,9 +121,9 @@ function Callout({ children, type = 'info' }: { children: ReactNode; type?: 'inf
   );
 }
 
-function TryItLink({ code, label }: { code?: string; label?: string }) {
+function TryItLink({ code, label, memory }: { code?: string; label?: string; memory?: boolean }) {
   const href = code
-    ? `/?code=${encodeURIComponent(code)}`
+    ? `/?code=${encodeURIComponent(code)}${memory ? '&memory=1' : ''}`
     : '/';
   return (
     <a
@@ -138,6 +138,290 @@ function TryItLink({ code, label }: { code?: string; label?: string }) {
 /* ─── Blog posts ──────────────────────────────────────────────────── */
 
 export const blogPosts: BlogPost[] = [
+  {
+    slug: 'javascript-closures-visualized',
+    title: "JavaScript Closures, Visualized — Why Your Loop Variable Isn't What You Think",
+    metaTitle: 'JavaScript Closures Explained Visually — The Loop Bug Everyone Hits (2026)',
+    metaDescription: 'A visual guide to JavaScript closures using a real memory graph. Understand why var breaks in loops, how let fixes it, and what a closure actually captures — not the metaphor, the real reference.',
+    publishedAt: '2026-07-15',
+    readingTime: '10 min read',
+    tags: ['JavaScript', 'Closures', 'Memory', 'Interview Prep'],
+    excerpt: "Closures are the #1 most-asked JavaScript interview topic — and the most poorly explained. Most articles stop at a metaphor. This one steps through a real memory graph and watches a captured variable survive and mutate after its function has already returned.",
+    content: (
+      <>
+        <p>
+          Ask any JavaScript developer to name the concept that trips them up the most, and "closures" wins
+          almost every time. Not because the idea is hard — it's four sentences long. It's because every
+          explanation stops at the metaphor ("a backpack of variables!") right before showing you what's
+          <em> actually</em> happening in memory.
+        </p>
+
+        <p>
+          This guide does the opposite. We'll start with the bug that makes closures impossible to ignore,
+          then open the hood — using{' '}
+          <a href="/" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">JS Visualizer</a>'s
+          memory graph to watch a real closure hold a real reference, not a copy.
+        </p>
+
+        <h2 id="the-bug" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The Bug That Introduces Everyone to Closures
+        </h2>
+
+        <p>Predict the output before you run this:</p>
+
+        <CodeBlock title="the-classic-bug.js">{`for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}`}</CodeBlock>
+
+        <p>Most people guess <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">0, 1, 2</code>. The actual output:</p>
+
+        <CodeBlock>{`3
+3
+3`}</CodeBlock>
+
+        <p>
+          All three callbacks print <code className="text-zinc-400">3</code>. Not because JavaScript is
+          broken — because all three arrow functions closed over the <em>same</em> <code className="text-zinc-400">i</code>,
+          and by the time any of them run, the loop has already finished and <code className="text-zinc-400">i</code> is 3.
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`for (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 100);\n}`}
+            label="Watch this bug happen in JS Visualizer"
+          />
+        </Callout>
+
+        <h2 id="what-is-a-closure" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          What a Closure Actually Is
+        </h2>
+
+        <p>
+          A closure is what happens when a function is created inside another function and keeps a{' '}
+          <strong>live reference</strong> to the variables in that outer scope — even after the outer
+          function has finished running and would normally have its variables cleaned up.
+        </p>
+
+        <CodeBlock title="basic-closure.js">{`function makeCounter() {
+  let count = 0;
+  return function increment() {
+    count++;
+    console.log(count);
+  };
+}
+
+const counter = makeCounter();
+counter(); // 1
+counter(); // 2
+counter(); // 3`}</CodeBlock>
+
+        <p>
+          <code className="text-zinc-400">makeCounter()</code> returns and is popped off the call stack. But{' '}
+          <code className="text-zinc-400">count</code> doesn't get garbage collected, because{' '}
+          <code className="text-zinc-400">increment</code> still holds a reference to it. That's the whole
+          mechanism. Not a copy of <code className="text-zinc-400">count</code> — the actual variable,
+          kept alive by the closure.
+        </p>
+
+        <Callout type="info">
+          This is the part most explanations skip: <code>count</code> isn't duplicated into the returned
+          function. There is exactly one <code>count</code> in memory, and <code>increment</code> points
+          directly at it. Every call mutates that same value.
+        </Callout>
+
+        <h2 id="see-the-reference" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          See the Reference, Not the Metaphor
+        </h2>
+
+        <p>
+          JS Visualizer has a <strong>Memory Graph</strong> panel — a force-directed diagram of the call
+          stack and the heap. Step through the counter example above with the memory panel open (add{' '}
+          <code className="text-zinc-400">&amp;memory=1</code> to the URL, or use the Try It link below) and
+          here's exactly what you'll see, step by step:
+        </p>
+
+        <ol className="my-4 space-y-2 text-sm text-zinc-300">
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">1.</span> <code className="text-zinc-400">makeCounter()</code> is called — a <code className="text-zinc-400">makeCounter( )</code> frame appears on the graph, empty at first.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">2.</span> <code className="text-zinc-400">let count = 0</code> runs — <code className="text-zinc-400">count: 0</code> appears inside that frame.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">3.</span> The <code className="text-zinc-400">increment</code> function is created and returned — a new <code className="text-zinc-400">FUNC increment</code> heap node appears.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">4.</span> <code className="text-zinc-400">makeCounter()</code> returns and its call frame disappears from the stack — but watch closely: <code className="text-zinc-400">count</code> doesn't disappear with it. It reappears as a variable on the <strong>Global</strong> frame, still reachable, still holding <code className="text-zinc-400">0</code>.</li>
+          <li className="flex gap-3"><span className="text-emerald-400 font-mono font-bold flex-shrink-0">5.</span> Each <code className="text-zinc-400">counter()</code> call mutates that <em>same</em> value in place — <code className="text-zinc-400">0 → 1 → 2 → 3</code> — never resetting, never getting recreated.</li>
+        </ol>
+
+        <p>
+          That last point is the proof that matters. If <code className="text-zinc-400">count</code> were
+          copied into <code className="text-zinc-400">increment</code> instead of referenced, you'd see it
+          reset to <code className="text-zinc-400">0</code> and increment to <code className="text-zinc-400">1</code>{' '}
+          on every call. Instead you watch one value survive across three separate calls, long after the
+          function that declared it has returned. That's the closure.
+        </p>
+
+        <Callout type="info">
+          Under the hood, the moment <code>makeCounter()</code>'s frame pops, our engine keeps{' '}
+          <code>count</code> reachable by surfacing it on the enclosing scope in the graph — it doesn't draw
+          a separate "closure environment" node with an arrow from <code>increment</code>. The value's
+          persistence across calls is what's real and worth watching; the exact node layout is a
+          simplification of what a real JS engine does internally.
+        </Callout>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`function makeCounter() {\n  let count = 0;\n  return function increment() {\n    count++;\n    console.log(count);\n  };\n}\n\nconst counter = makeCounter();\ncounter();\ncounter();\ncounter();`}
+            label="Open Memory Graph and watch count persist"
+            memory
+          />
+          <p className="text-xs text-zinc-500 mt-2">
+            This link unlocks the <strong>Memory Visualization</strong> panel automatically. Once it loads,
+            use <strong>STEP</strong> (not RUN) and watch the panel on the right — you'll see{' '}
+            <code className="text-amber-400">count</code> survive the frame pop and increment in place.
+          </p>
+        </Callout>
+
+        <h2 id="why-let-fixes-it" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Why <code>let</code> Fixes the Loop Bug
+        </h2>
+
+        <p>
+          Now the fix — and the reason it works isn't "let is smarter than var," it's that{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">let</code> creates a{' '}
+          <strong>new binding</strong> on every loop iteration, while{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">var</code> reuses one
+          binding for the entire loop.
+        </p>
+
+        <CodeBlock title="the-fix.js">{`for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// 0
+// 1
+// 2`}</CodeBlock>
+
+        <p>
+          With <code className="text-zinc-400">var</code>, there is one <code className="text-zinc-400">i</code>{' '}
+          living in the function (or global) scope, and all three closures point at it. With{' '}
+          <code className="text-zinc-400">let</code>, the loop creates a <em>fresh</em>{' '}
+          <code className="text-zinc-400">i</code> for each iteration — so each closure captures its own,
+          independent variable. In the memory graph, this is the difference between three arrows pointing
+          at one node, and three arrows each pointing at their own node.
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`for (let i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 100);\n}`}
+            label="Compare let's per-iteration bindings in JS Visualizer"
+          />
+        </Callout>
+
+        <h2 id="old-fix" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The Pre-<code>let</code> Fix (Good to Recognize)
+        </h2>
+
+        <p>
+          Before ES2015, the fix was an IIFE (immediately invoked function expression) that manually created
+          a new scope per iteration — you'll still see this in older codebases:
+        </p>
+
+        <CodeBlock title="iife-fix.js">{`for (var i = 0; i < 3; i++) {
+  (function (j) {
+    setTimeout(() => console.log(j), 100);
+  })(i);
+}
+// 0
+// 1
+// 2`}</CodeBlock>
+
+        <p>
+          Same principle: each IIFE call creates its own scope with its own{' '}
+          <code className="text-zinc-400">j</code>, so each closure captures a distinct variable — exactly
+          what <code className="text-zinc-400">let</code> now does for you automatically.
+        </p>
+
+        <h2 id="practical-uses" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Where Closures Actually Show Up in Real Code
+        </h2>
+
+        <p>Closures aren't just an interview trap — they're the mechanism behind patterns you use constantly:</p>
+
+        <div className="space-y-4 my-6">
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Private state</p>
+            <p className="text-sm text-zinc-400">The <code>makeCounter</code> pattern above — encapsulating a variable so it's only reachable through specific functions. This is how JavaScript did "private fields" before class private fields existed.</p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Event handlers &amp; callbacks</p>
+            <p className="text-sm text-zinc-400">Every <code>addEventListener(() =&gt; doSomethingWith(data))</code> is a closure holding onto <code>data</code> long after the setup code finished running.</p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Memoization &amp; caching</p>
+            <p className="text-sm text-zinc-400">A memoized function closes over a cache object that persists across calls, invisible to anything outside the closure.</p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">React hooks</p>
+            <p className="text-sm text-zinc-400">Every custom hook is a closure. "Stale closure" bugs in <code>useEffect</code> are this exact mechanism — a callback capturing a variable from a render that has since been replaced.</p>
+          </div>
+        </div>
+
+        <h2 id="memory-leak-warning" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The Trade-off: Closures Can Leak Memory
+        </h2>
+
+        <p>
+          Because a closure keeps its captured variables alive, holding a closure alive holds{' '}
+          <em>everything it references</em> alive too — even variables the closure never actually uses,
+          if they're in the same scope.
+        </p>
+
+        <CodeBlock title="closure-leak.js">{`function setup() {
+  const hugeData = new Array(1_000_000).fill('x'); // never used below
+  const smallValue = 42;
+
+  return function useSmallValue() {
+    console.log(smallValue);
+    // hugeData is never referenced here, but in some engines
+    // it can still be kept alive by sharing the same scope
+  };
+}`}</CodeBlock>
+
+        <Callout type="warning">
+          Long-lived closures (event listeners that are never removed, cached callbacks) are a classic
+          source of memory leaks in single-page apps. If a component unmounts but a closure it created is
+          still referenced elsewhere (a global event listener, a timer), everything that closure
+          captured stays in memory.
+        </Callout>
+
+        <h2 id="summary" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Summary
+        </h2>
+
+        <div className="my-6 rounded-lg border border-zinc-700 bg-zinc-900/50 p-6">
+          <ol className="space-y-3 text-sm text-zinc-300">
+            <li><strong className="text-zinc-100">1.</strong> A closure is a function plus a live reference to the scope it was created in — not a snapshot, not a copy.</li>
+            <li><strong className="text-zinc-100">2.</strong> <code>var</code> in a loop creates one binding shared by every closure; <code>let</code> creates a new binding per iteration.</li>
+            <li><strong className="text-zinc-100">3.</strong> That's the entire reason the classic <code>setTimeout</code>-in-a-loop bug exists, and the entire reason <code>let</code> fixes it.</li>
+            <li><strong className="text-zinc-100">4.</strong> Closures power private state, callbacks, memoization, and every React hook.</li>
+            <li><strong className="text-zinc-100">5.</strong> Because they keep references alive, closures are also a common source of memory leaks.</li>
+          </ol>
+        </div>
+
+        <p>
+          Metaphors get you through a definition. Watching the reference actually form — and watching it
+          survive after the frame that created it is gone — is what makes closures click for good.
+        </p>
+
+        <div className="my-8 flex justify-center">
+          <TryItLink label="Open JS Visualizer and watch a closure form — free" />
+        </div>
+
+        <p>
+          Related reading: how the{' '}
+          <a href="/blogs/javascript-event-loop-explained" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">event loop</a>{' '}
+          decides when your captured callbacks actually run, and{' '}
+          <a href="/blogs/microtask-vs-macrotask-javascript" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">microtask vs macrotask</a>{' '}
+          ordering for the async version of this exact confusion.
+        </p>
+      </>
+    ),
+  },
   {
     slug: 'new-javascript-features-es2026',
     title: '9 New JavaScript Features in ES2026 (Including the Two Everyone Was Waiting For)',
