@@ -5951,6 +5951,13 @@ function simulateEventLoop(ctx: ExecutionContext): void {
       }
     }
 
+    // Draining microtasks can register new timers — an async function resuming
+    // after `await` commonly starts the next one. Those timers must also move
+    // Web API -> Task Queue before anything is dequeued below, otherwise the
+    // macrotask is processed without ever having been shown in the Task Queue
+    // and its Web API entry is never removed (stranded timer cards).
+    expireReadyTimers(ctx);
+
     if (ctx.pendingMacrotasks.length > 0) {
       ctx.steps.push({ type: 'event-loop-phase', data: { phase: 'processing-task' } });
       emitExplanation(ctx, 0, {
