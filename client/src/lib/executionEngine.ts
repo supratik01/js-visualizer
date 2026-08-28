@@ -44,6 +44,13 @@ interface PendingMicrotask {
   assignTo?: string;
   /** Full LHS pattern node for destructuring await assignments (ArrayPattern, ObjectPattern, Identifier). */
   assignPattern?: any;
+  /**
+   * For an await nested inside a larger expression (e.g. `out.push(await f())`),
+   * this is the original statement rewritten with the AwaitExpression replaced by
+   * a placeholder identifier. On resume the placeholder is bound to the resolved
+   * value and this statement is executed, so the surrounding expression still runs.
+   */
+  resumeStatement?: any;
   asyncPromiseId?: string;
   closureVars?: Map<string, any>;
   /** `this` binding at the point the async function suspended — restored on resume so class methods work correctly after await. */
@@ -4617,11 +4624,69 @@ function extractAwaitTarget(node: any): any {
   return null;
 }
 
+/** Max iterations an await-containing loop is unrolled to (guards runaway expansion). */
+const AWAIT_LOOP_UNROLL_LIMIT = 100;
+
+/**
+ * Expand a loop whose body contains `await` into a flat statement list:
+ * [bind i0, ...body, bind i1, ...body, ...]. Returns null when the loop can't be
+ * unrolled (unknown iterable, non-terminating, or over the limit).
+ */
+function unrollAwaitLoop(stmt: any, ctx: ExecutionContext): any[] | null {
+  const bodyStmts: any[] = stmt.body?.type === 'BlockStatement' ? stmt.body.body : (stmt.body ? [stmt.body] : []);
+  if (bodyStmts.length === 0) return null;
+  const out: any[] = [];
+
+  if (stmt.type === 'ForOfStatement') {
+    const iterable = evaluateExpression(stmt.right, ctx);
+    if (iterable === null || iterable === undefined) return null;
+    const items: any[] = [];
+    spreadInto(items, iterable, ctx); // reuses the existing iterable-spread semantics
+    if (items.length > AWAIT_LOOP_UNROLL_LIMIT) return null;
+    const decl = stmt.left?.type === 'VariableDeclaration' ? stmt.left.declarations?.[0]?.id : stmt.left;
+    if (!decl) return null;
+    for (const item of items) {
+      out.push(decl.type === 'Identifier'
+        ? { type: '__BindLoopVar', name: decl.name, value: item }
+        : { type: '__BindLoopVar', pattern: decl, value: item });
+      out.push(...bodyStmts);
+    }
+    return out;
+  }
+
+  // Classic `for (init; test; update)` and `while (test)`. The header is evaluated
+  // eagerly here (awaits in the header itself are not supported).
+  if (stmt.type === 'ForStatement' && stmt.init) processNode(stmt.init, ctx);
+  let guard = 0;
+  while (guard++ <= AWAIT_LOOP_UNROLL_LIMIT) {
+    const test = stmt.test ? evaluateExpression(stmt.test, ctx) : true;
+    if (!test) return out;
+    // Snapshot the loop variable(s) for this iteration so each unrolled copy sees
+    // its own value rather than the final one.
+    if (stmt.type === 'ForStatement' && stmt.init?.type === 'VariableDeclaration') {
+      for (const d of stmt.init.declarations || []) {
+        if (d.id?.type === 'Identifier') {
+          out.push({ type: '__BindLoopVar', name: d.id.name, value: ctx.variables.get(d.id.name) });
+        }
+      }
+    }
+    out.push(...bodyStmts);
+    if (stmt.type === 'ForStatement' && stmt.update) evaluateExpression(stmt.update, ctx);
+    else if (stmt.type === 'WhileStatement') {
+      // Without an update clause we can't prove termination statically; bail out
+      // rather than risk an unbounded unroll.
+      return null;
+    }
+  }
+  return null; // exceeded the unroll limit
+}
+
 function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: ExecutionContext, awaitTryContext?: PendingMicrotask['awaitTryContext']): void {
   const line = getNodeLine(stmt);
   let awaitedValue: any;
   let assignTo: string | undefined;
   let assignPattern: any = undefined; // full LHS node for destructuring
+  let resumeStatement: any = undefined; // set when the await is nested in a larger expression
   let isReturn = false;
 
   // Recursive descent through statements that *contain* an await, but aren't themselves
@@ -4658,6 +4723,22 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
     return;
   }
 
+  // ── Loops containing `await` ────────────────────────────────────────────
+  // The engine executes statements, not a resumable interpreter, so a loop body
+  // that suspends mid-iteration can't be re-entered. Instead, unroll the loop
+  // into a flat statement list (one bind + body per iteration) and hand it to
+  // processBody — each `await` then suspends and resumes through the normal
+  // machinery, with the remaining iterations as its continuation.
+  if (stmt.type === 'ForOfStatement' || stmt.type === 'ForStatement' || stmt.type === 'WhileStatement') {
+    const unrolled = unrollAwaitLoop(stmt, ctx);
+    if (unrolled) {
+      processBody([...unrolled, ...remainingStmts], ctx);
+      return;
+    }
+    // Couldn't unroll (e.g. non-enumerable iterable) — fall through to the
+    // generic path below rather than silently dropping the statement.
+  }
+
   if (stmt.type === 'ExpressionStatement') {
     const expr = stmt.expression;
     if (expr.type === 'AwaitExpression') {
@@ -4671,8 +4752,15 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
       awaitedValue = evaluateExpression(expr.right.argument, ctx);
     } else {
       const awaitArg = findAwaitArgument(expr);
-      if (awaitArg) awaitedValue = evaluateExpression(awaitArg, ctx);
-      else awaitedValue = evaluateExpression(expr, ctx);
+      if (awaitArg) {
+        awaitedValue = evaluateExpression(awaitArg, ctx);
+        // The await is nested inside a bigger expression (e.g. `out.push(await f())`).
+        // Keep the surrounding expression so it can run on resume; without this the
+        // outer call was silently dropped and its effect lost.
+        resumeStatement = substituteAwaitWithPlaceholder(stmt);
+      } else {
+        awaitedValue = evaluateExpression(expr, ctx);
+      }
     }
   } else if (stmt.type === 'VariableDeclaration') {
     const decl = stmt.declarations[0];
@@ -4685,8 +4773,15 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
       awaitedValue = evaluateExpression(decl.init.argument, ctx);
     } else {
       const awaitArg = findAwaitArgument(decl.init);
-      if (awaitArg) awaitedValue = evaluateExpression(awaitArg, ctx);
-      else awaitedValue = evaluateExpression(decl.init, ctx);
+      if (awaitArg) {
+        awaitedValue = evaluateExpression(awaitArg, ctx);
+        // Nested await in the initializer (e.g. `const n = (await f()) + 1`).
+        // Re-run the whole declaration on resume with the value substituted.
+        resumeStatement = substituteAwaitWithPlaceholder(stmt);
+        if (resumeStatement) { assignTo = undefined; assignPattern = undefined; }
+      } else {
+        awaitedValue = evaluateExpression(decl.init, ctx);
+      }
     }
   } else if (stmt.type === 'ReturnStatement') {
     isReturn = true;
@@ -4731,6 +4826,7 @@ function processStatementWithAwait(stmt: any, remainingStmts: any[], ctx: Execut
       remainingStatements: remainingStmts,
       assignTo: isReturn ? undefined : assignTo,
       assignPattern: isReturn ? undefined : assignPattern,
+      resumeStatement: isReturn ? undefined : resumeStatement,
       asyncPromiseId, closureVars, savedThisBinding,
       awaitTryContext, awaitWasRejection: isRejection,
     };
@@ -4791,6 +4887,33 @@ function handleAbruptCompletionInTry(tryStmt: any, statementsAfterTry: any[], ct
   }
 }
 
+/** Placeholder identifier that stands in for an already-resolved awaited value. */
+const AWAIT_PLACEHOLDER = '__jsviz_awaited__';
+
+/**
+ * Deep-clone `node`, replacing the first AwaitExpression with a placeholder
+ * identifier. Lets a nested await (`out.push(await f())`) be re-evaluated on
+ * resume with the resolved value substituted in place. Does not descend into
+ * nested function bodies — their awaits belong to a different scope.
+ */
+function substituteAwaitWithPlaceholder(node: any): any {
+  let replaced = false;
+  const walk = (n: any): any => {
+    if (!n || typeof n !== 'object' || replaced) return n;
+    if (Array.isArray(n)) return n.map(walk);
+    if (n.type === 'FunctionExpression' || n.type === 'FunctionDeclaration' || n.type === 'ArrowFunctionExpression') return n;
+    if (n.type === 'AwaitExpression') {
+      replaced = true;
+      return { type: 'Identifier', name: AWAIT_PLACEHOLDER, start: n.start, end: n.end, loc: n.loc };
+    }
+    const out: any = {};
+    for (const k of Object.keys(n)) out[k] = walk(n[k]);
+    return out;
+  };
+  const result = walk(node);
+  return replaced ? result : null;
+}
+
 function findAwaitArgument(node: any): any {
   if (!node) return null;
   if (node.type === 'AwaitExpression') return node.argument;
@@ -4829,6 +4952,14 @@ function processNode(node: any, ctx: ExecutionContext): void {
   if (ctx.steps.length > ctx.stepLimit) return;
 
   const line = getNodeLine(node);
+
+  // Synthetic node emitted by await-loop unrolling: bind an already-computed
+  // value to the loop variable for one unrolled iteration.
+  if (node.type === '__BindLoopVar') {
+    if (node.pattern) bindPattern(node.pattern, node.value, ctx);
+    else ctx.variables.set(node.name, node.value);
+    return;
+  }
 
   switch (node.type) {
     case 'ExpressionStatement':
@@ -5684,6 +5815,14 @@ function processAsyncResumeMicrotask(task: PendingMicrotask, ctx: ExecutionConte
     } else if (task.args.length > 0) {
       if (task.assignPattern) bindPattern(task.assignPattern, task.args[0], ctx);
       else if (task.assignTo) ctx.variables.set(task.assignTo, task.args[0]);
+    }
+    // The await was nested inside a larger expression — bind the resolved value to
+    // the placeholder and run the rewritten statement so the surrounding
+    // expression (e.g. the `out.push(...)` wrapper) actually executes.
+    if (!ctx.hasThrown && task.resumeStatement) {
+      ctx.variables.set(AWAIT_PLACEHOLDER, task.args[0]);
+      processNode(task.resumeStatement, ctx);
+      ctx.variables.delete(AWAIT_PLACEHOLDER);
     }
     if (!ctx.hasThrown && task.remainingStatements && task.remainingStatements.length > 0) {
       processBody(task.remainingStatements, ctx);
