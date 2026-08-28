@@ -61,6 +61,7 @@ export function Visualizer() {
     setCode,
     importState,
     unlockMemoryFeature,
+    setSpeed,
   } = useRuntimeStore();
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -104,6 +105,18 @@ export function Visualizer() {
     if (params.get('memory') === '1') {
       unlockMemoryFeature();
       window.history.replaceState(null, '', window.location.pathname);
+    }
+
+    // ?speed=<ms per step> — lets deep links (e.g. blog "Try it" links for long
+    // async examples) open at a faster playback rate than the 600ms default.
+    // Clamped to the same range the speed slider allows.
+    const rawSpeed = params.get('speed');
+    if (rawSpeed) {
+      const parsed = Number(rawSpeed);
+      if (Number.isFinite(parsed)) {
+        setSpeed(Math.min(2000, Math.max(100, Math.round(parsed))));
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     }
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 

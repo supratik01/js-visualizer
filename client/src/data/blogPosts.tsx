@@ -121,9 +121,9 @@ function Callout({ children, type = 'info' }: { children: ReactNode; type?: 'inf
   );
 }
 
-function TryItLink({ code, label, memory }: { code?: string; label?: string; memory?: boolean }) {
+function TryItLink({ code, label, memory, speed }: { code?: string; label?: string; memory?: boolean; speed?: number }) {
   const href = code
-    ? `/?code=${encodeURIComponent(code)}${memory ? '&memory=1' : ''}`
+    ? `/?code=${encodeURIComponent(code)}${memory ? '&memory=1' : ''}${speed ? `&speed=${speed}` : ''}`
     : '/';
   return (
     <a
@@ -138,6 +138,272 @@ function TryItLink({ code, label, memory }: { code?: string; label?: string; mem
 /* ─── Blog posts ──────────────────────────────────────────────────── */
 
 export const blogPosts: BlogPost[] = [
+  {
+    slug: 'async-await-sequential-vs-parallel',
+    title: 'Your await Is Making Your App Slow — Sequential vs Parallel, Visualized',
+    metaTitle: 'async/await Sequential vs Parallel in JavaScript — Promise.all Explained (2026)',
+    metaDescription: 'Awaiting independent operations one at a time is the most common async performance bug in JavaScript. See the difference between sequential await and Promise.all in a live task queue — and learn when parallelizing is wrong.',
+    publishedAt: '2026-08-28',
+    readingTime: '9 min read',
+    tags: ['JavaScript', 'async/await', 'Performance', 'Promises'],
+    excerpt: "await in a loop is the async bug almost everyone ships. It's not a syntax error and it never throws — your code just quietly takes three times longer than it should. Here's how to see it happen.",
+    content: (
+      <>
+        <p>
+          Most async bugs announce themselves. This one doesn't. Your code is correct, your tests pass,
+          nothing throws — the app is just <em>slower than it needs to be</em>, and nothing in the source
+          tells you why.
+        </p>
+
+        <p>
+          The cause is almost always the same: <strong>you awaited things one at a time that could have
+          run at once.</strong> This guide shows you the difference — not as a timing benchmark, but by
+          watching the task queue in{' '}
+          <a href="/" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">JS Visualizer</a>{' '}
+          so you can see exactly how many operations are actually in flight.
+        </p>
+
+        <h2 id="the-bug" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The Bug: <code>await</code> Inside a Loop
+        </h2>
+
+        <p>
+          This is the shape it almost always takes. Three independent fetches, awaited in a loop:
+        </p>
+
+        <CodeBlock title="sequential.js">{`function delay(label) {
+  return new Promise(res => setTimeout(() => res(label), 0));
+}
+
+(async () => {
+  const out = [];
+  for (const x of ['a', 'b', 'c']) {
+    out.push(await delay(x));   // ← waits for each one before starting the next
+  }
+  console.log('loop: ' + out.join());
+})();`}</CodeBlock>
+
+        <p>
+          Nothing here is wrong, exactly. It produces the right answer. But{' '}
+          <code className="text-zinc-400">delay('b')</code> doesn't even <em>start</em> until{' '}
+          <code className="text-zinc-400">delay('a')</code> has finished. If each call takes 200ms, this
+          takes 600ms to do 200ms worth of waiting.
+        </p>
+
+        <Callout type="warning">
+          The giveaway is <code className="text-amber-400">await</code> directly inside a loop body, where
+          the awaited work <em>doesn't depend on the previous iteration</em>. That's a queue of one — you've
+          serialized work that had no reason to be serial.
+        </Callout>
+
+        <h2 id="see-it" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Seeing It: Count the Timers
+        </h2>
+
+        <p>
+          Here's the part you can actually watch. A visualizer can't speed up wall-clock time, but it{' '}
+          <em>can</em> show you <strong>how many operations are in flight at once</strong> — and that's the
+          whole story.
+        </p>
+
+        <p>
+          Run the sequential loop above with the <strong>Task Queue</strong> panel visible. You'll never see
+          more than <strong>one</strong> timer waiting in it. Each iteration registers a timer, waits for it
+          to fire, then registers the next.
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`function delay(label) {\n  return new Promise(res => setTimeout(() => res(label), 0));\n}\n\n(async () => {\n  const out = [];\n  for (const x of ['a', 'b', 'c']) {\n    out.push(await delay(x));\n  }\n  console.log('loop: ' + out.join());\n})();`}
+            label="Run the sequential loop — watch the Task Queue"
+            speed={150}
+          />
+          <p className="text-xs text-zinc-500 mt-2">
+            Watch the Task Queue panel: never more than <strong>1</strong> timer at a time.
+          </p>
+        </Callout>
+
+        <h2 id="the-fix" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The Fix: Start Everything, Then Await
+        </h2>
+
+        <p>
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Promise.all</code>{' '}
+          doesn't make anything faster by itself. What it does is let you <strong>start all the work
+          first</strong>, then wait once for all of it:
+        </p>
+
+        <CodeBlock title="parallel.js">{`(async () => {
+  // every delay() is called immediately — all three timers start now
+  const out = await Promise.all(['a', 'b', 'c'].map(x => delay(x)));
+  console.log('mapped: ' + out.join());
+})();`}</CodeBlock>
+
+        <p>
+          Same output. Same total work. But run this one and the Task Queue holds{' '}
+          <strong>three timers at once</strong> instead of one. That's the entire optimization, made visible:
+          three things waiting concurrently instead of three things waiting in single file.
+        </p>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`function delay(label) {\n  return new Promise(res => setTimeout(() => res(label), 0));\n}\n\n(async () => {\n  const out = await Promise.all(['a', 'b', 'c'].map(x => delay(x)));\n  console.log('mapped: ' + out.join());\n})();`}
+            label="Run the parallel version — count the timers"
+            speed={150}
+          />
+          <p className="text-xs text-zinc-500 mt-2">
+            Now the Task Queue holds <strong>3</strong> timers simultaneously. Same code shape, same result,
+            one third of the waiting.
+          </p>
+        </Callout>
+
+        <div className="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border p-4 bg-red-500/5 border-red-500/20">
+            <h3 className="text-sm font-bold text-red-400 mb-1">Sequential loop</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Max <strong>1</strong> timer in the queue. Total time = sum of every operation.
+            </p>
+          </div>
+          <div className="rounded-lg border p-4 bg-emerald-500/5 border-emerald-500/20">
+            <h3 className="text-sm font-bold text-emerald-400 mb-1">Promise.all</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Max <strong>3</strong> timers in the queue. Total time = the <em>slowest</em> single operation.
+            </p>
+          </div>
+        </div>
+
+        <h2 id="two-awaits" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          It Isn't Only Loops
+        </h2>
+
+        <p>
+          The same bug hides in plain sequential code. These two look almost identical and behave
+          completely differently:
+        </p>
+
+        <CodeBlock title="two-calls.js">{`// Sequential — b starts only after a finishes
+const a = await delay('a');
+const b = await delay('b');
+
+// Parallel — both start immediately, then we wait once
+const [a, b] = await Promise.all([delay('a'), delay('b')]);`}</CodeBlock>
+
+        <p>
+          Any time you see two <code className="text-zinc-400">await</code>s in a row where the second
+          doesn't use the first one's result, that's the same serialization bug in miniature.
+        </p>
+
+        <h2 id="when-not-to" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          When Sequential Is Correct
+        </h2>
+
+        <p>
+          This is the part most "use Promise.all!" advice leaves out. If the second operation{' '}
+          <strong>needs the first one's result</strong>, sequential isn't a bug — it's the only option:
+        </p>
+
+        <CodeBlock title="dependent.js">{`// You cannot parallelize this. posts needs user.
+const user  = await delay('user');
+const posts = await delay(user + '-posts');
+console.log(posts);   // "user-posts"`}</CodeBlock>
+
+        <Callout type="info">
+          The test is simple: <strong>does operation B use a value produced by operation A?</strong> If yes,
+          it must wait. If no, it should have started already. Parallelizing dependent work doesn't make it
+          faster — it makes it broken.
+        </Callout>
+
+        <h2 id="error-handling" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          The Trade-off: One Failure Kills Them All
+        </h2>
+
+        <p>
+          <code className="text-zinc-400">Promise.all</code> rejects as soon as{' '}
+          <em>any</em> member rejects — you lose the results that did succeed:
+        </p>
+
+        <CodeBlock title="fail-fast.js">{`Promise.all([Promise.resolve(1), Promise.reject(new Error('boom'))])
+  .then(r => console.log('ok'))
+  .catch(e => console.log('caught: ' + e.message));
+// caught: boom   — the successful result is gone`}</CodeBlock>
+
+        <p>
+          When you'd rather collect everything, successes and failures alike, use{' '}
+          <code className="text-amber-400 bg-zinc-800 px-1.5 py-0.5 rounded text-sm">Promise.allSettled</code>:
+        </p>
+
+        <CodeBlock title="all-settled.js">{`Promise.allSettled([Promise.resolve(1), Promise.reject(new Error('x'))])
+  .then(r => console.log('statuses: ' + r.map(o => o.status).join()));
+// statuses: fulfilled,rejected`}</CodeBlock>
+
+        <Callout type="tip">
+          <TryItLink
+            code={`Promise.all([Promise.resolve(1), Promise.reject(new Error('boom'))])\n  .then(r => console.log('ok'))\n  .catch(e => console.log('caught: ' + e.message));\n\nPromise.allSettled([Promise.resolve(1), Promise.reject(new Error('x'))])\n  .then(r => console.log('statuses: ' + r.map(o => o.status).join()));`}
+            label="Compare all vs allSettled in JS Visualizer"
+            speed={150}
+          />
+        </Callout>
+
+        <h2 id="choosing" className="text-xl font-bold text-zinc-100 mt-12 mb-4">
+          Which Combinator?
+        </h2>
+
+        <div className="space-y-3 my-6">
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Promise.all</p>
+            <p className="text-sm text-zinc-400">All must succeed. Rejects on the first failure. The default for "fetch these N independent things."</p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Promise.allSettled</p>
+            <p className="text-sm text-zinc-400">Never rejects. Returns a status for every input. Use when partial success is still useful.</p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Promise.race</p>
+            <p className="text-sm text-zinc-400">First to <em>settle</em> wins, success or failure. Classic use: racing a request against a timeout.</p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 p-4">
+            <p className="text-sm font-semibold text-amber-400 mb-1">Promise.any</p>
+            <p className="text-sm text-zinc-400">First to <em>succeed</em> wins; ignores failures until they all fail. Use for redundant sources — try three mirrors, take whichever answers.</p>
+          </div>
+        </div>
+
+        <Callout type="warning">
+          Parallel isn't free. Firing 10,000 requests with <code className="text-amber-400">Promise.all</code>{' '}
+          will happily open 10,000 connections and get you rate-limited. For large sets, batch them or use a
+          concurrency limit — "parallel" should mean "a sensible number at once," not "all of them."
+        </Callout>
+
+        <h2 id="summary" className="text-xl font-bold text-zinc-100 mt-12 mb-4">Summary</h2>
+
+        <div className="my-6 rounded-lg border border-zinc-700 bg-zinc-900/50 p-6">
+          <ol className="space-y-3 text-sm text-zinc-300">
+            <li><strong className="text-zinc-100">1.</strong> <code>await</code> in a loop over independent work serializes it — total time becomes the <em>sum</em> of every operation.</li>
+            <li><strong className="text-zinc-100">2.</strong> <code>Promise.all</code> lets you start everything first, so total time becomes the <em>slowest single</em> operation.</li>
+            <li><strong className="text-zinc-100">3.</strong> You can see the difference directly: how many timers sit in the Task Queue at once — 1 vs N.</li>
+            <li><strong className="text-zinc-100">4.</strong> If B needs A's result, sequential is correct. Don't "fix" it.</li>
+            <li><strong className="text-zinc-100">5.</strong> <code>all</code> fails fast; <code>allSettled</code> collects everything; <code>race</code> takes the first settled; <code>any</code> takes the first success.</li>
+          </ol>
+        </div>
+
+        <p>
+          The reason this bug survives code review is that it's invisible in the source — both versions read
+          like reasonable async code. It only becomes obvious when you can see how much is actually in flight.
+        </p>
+
+        <div className="my-8 flex justify-center">
+          <TryItLink label="Open JS Visualizer and watch the queue — free" />
+        </div>
+
+        <p>
+          Related reading:{' '}
+          <a href="/blogs/microtask-vs-macrotask-javascript" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">Microtask vs Macrotask</a>{' '}
+          for why <code className="text-zinc-400">await</code> continuations resume when they do, and the{' '}
+          <a href="/blogs/javascript-event-loop-explained" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">JavaScript Event Loop guide</a>{' '}
+          for the machinery underneath all of it.
+        </p>
+      </>
+    ),
+  },
   {
     slug: 'javascript-closures-visualized',
     title: "JavaScript Closures, Visualized — Why Your Loop Variable Isn't What You Think",
