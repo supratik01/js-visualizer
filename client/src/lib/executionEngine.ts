@@ -3915,15 +3915,29 @@ function scheduleNativeMicrotask(ctx: ExecutionContext, fn: () => void): void {
 function processPromiseCombinator(type: string, arrNode: any, ctx: ExecutionContext, line: number): any {
   const resultPromiseId = createPromise(ctx);
 
-  if (!arrNode || arrNode.type !== 'ArrayExpression') {
+  if (!arrNode) {
     if (type === 'all' || type === 'allSettled') resolvePromise(ctx, resultPromiseId, []);
     return { __promiseId: resultPromiseId };
   }
 
+  // Collect the member values. A literal `[a, b]` is walked element-by-element so
+  // each element expression is evaluated in place; anything else (the very common
+  // `Promise.all(items.map(fn))`, a variable, a spread) is evaluated once and
+  // spread using normal iterable semantics.
+  const memberValues: any[] = [];
+  if (arrNode.type === 'ArrayExpression') {
+    for (const el of arrNode.elements || []) {
+      if (!el) continue;
+      if (el.type === 'SpreadElement') spreadInto(memberValues, evaluateExpression(el.argument, ctx), ctx);
+      else memberValues.push(evaluateExpression(el, ctx));
+    }
+  } else {
+    const iterable = evaluateExpression(arrNode, ctx);
+    if (iterable !== null && iterable !== undefined) spreadInto(memberValues, iterable, ctx);
+  }
+
   const promiseIds: string[] = [];
-  for (const el of arrNode.elements || []) {
-    if (!el) continue;
-    const val = evaluateExpression(el, ctx);
+  for (const val of memberValues) {
     if (val && typeof val === 'object' && val.__promiseId) {
       promiseIds.push(val.__promiseId);
     } else {
