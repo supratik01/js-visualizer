@@ -107,9 +107,11 @@ on the subdomain.
 
 ## Technical work already shipped (the 20%)
 
-- **Pre-rendered, crawler-visible content** inside `#root` in `client/index.html`
-  (real `<h1>` + value-prop prose in the initial HTML, not just `<noscript>`,
-  which Google discounts). Doubles as a themed loading screen.
+- ~~**Pre-rendered, crawler-visible content** inside `#root`~~ — **reverted.** Anything
+  inside `#root` is visible to users until React mounts, so it showed as a flash on every
+  page load. Not worth it: the #1 ranking competitor (jsv9000) serves a completely empty
+  client-rendered page, so first-wave HTML content is clearly not the deciding factor here.
+  Crawler-facing content stays in `<noscript>` + JSON-LD.
 - **TechArticle JSON-LD** injected per blog post (`client/src/pages/BlogPost.tsx`)
   for rich-result eligibility.
 - **Two long-tail posts** added (`microtask-vs-macrotask-javascript`,
