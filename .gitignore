@@ -27,3 +27,8 @@ output/
 
 # Reference assets used during development (not part of the app)
 attached_assets/
+
+# Local-only working files (kept on disk, not in version control)
+CLAUDE.md
+devto-*.md
+Why_Do_Promises_*.md
