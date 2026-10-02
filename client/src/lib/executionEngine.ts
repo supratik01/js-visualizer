@@ -425,6 +425,30 @@ function extractCallbackStr(node: any): string {
   return 'callback';
 }
 
+// ToNumber (ECMAScript §7.1.4) for simulated values. Engine Dates are wrappers, so
+// unwrap them to their time value; everything else follows native coercion, which
+// keeps NaN/Infinity/-0 intact ("abc" * 2 → NaN, 10 / 0 → Infinity, 0 / 0 → NaN).
+function toNumberValue(value: any): number {
+  if (typeof value === 'object' && value !== null && value.__type === 'Date' && value.__date instanceof Date) {
+    return value.__date.getTime();
+  }
+  return Number(value);
+}
+
+// Binary + (ECMAScript §13.15.3 ApplyStringOrNumericBinaryOperator): concatenate if
+// either primitive operand is a string, otherwise add numerically
+// (null + 1 → 1, true + 1 → 2, undefined + 1 → NaN, "a" + undefined → "aundefined").
+function addValues(left: any, right: any): any {
+  if (typeof left === 'number' && typeof right === 'number') return left + right;
+  const isObj = (v: any) => typeof v === 'object' && v !== null;
+  const lp = isObj(left) && left.__type !== 'Date' ? String(left) : left;
+  const rp = isObj(right) && right.__type !== 'Date' ? String(right) : right;
+  if (typeof lp === 'string' || typeof rp === 'string' || isObj(lp) || isObj(rp)) {
+    return String(lp) + String(rp);
+  }
+  return toNumberValue(lp) + toNumberValue(rp);
+}
+
 function formatValue(value: any): string {
   if (value === undefined) return 'undefined';
   if (value === null) return 'null';
@@ -1388,14 +1412,12 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
       }
 
       switch (node.operator) {
-        case '+':
-          if (typeof left === 'number' && typeof right === 'number') return left + right;
-          return String(left ?? '') + String(right ?? '');
-        case '-': return (Number(left) || 0) - (Number(right) || 0);
-        case '*': return (Number(left) || 0) * (Number(right) || 0);
-        case '/': return (Number(right) || 1) === 0 ? Infinity : (Number(left) || 0) / (Number(right) || 1);
-        case '%': return (Number(left) || 0) % (Number(right) || 1);
-        case '**': return Math.pow(Number(left) || 0, Number(right) || 0);
+        case '+': return addValues(left, right);
+        case '-': return toNumberValue(left) - toNumberValue(right);
+        case '*': return toNumberValue(left) * toNumberValue(right);
+        case '/': return toNumberValue(left) / toNumberValue(right);
+        case '%': return toNumberValue(left) % toNumberValue(right);
+        case '**': return toNumberValue(left) ** toNumberValue(right);
         case '===': return left === right;
         case '!==': return left !== right;
         case '==': return left == right;
@@ -1862,18 +1884,18 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
         const current = ctx.variables.get(name);
         switch (node.operator) {
           case '=': break;
-          case '+=': value = (typeof current === 'number' && typeof value === 'number') ? current + value : String(current ?? '') + String(value ?? ''); break;
-          case '-=': value = (Number(current) || 0) - (Number(value) || 0); break;
-          case '*=': value = (Number(current) || 0) * (Number(value) || 0); break;
-          case '/=': value = (Number(current) || 0) / (Number(value) || 1); break;
-          case '%=': value = (Number(current) || 0) % (Number(value) || 1); break;
-          case '**=': value = Math.pow(Number(current) || 0, Number(value) || 0); break;
-          case '&=': value = (Number(current) || 0) & (Number(value) || 0); break;
-          case '|=': value = (Number(current) || 0) | (Number(value) || 0); break;
-          case '^=': value = (Number(current) || 0) ^ (Number(value) || 0); break;
-          case '<<=': value = (Number(current) || 0) << (Number(value) || 0); break;
-          case '>>=': value = (Number(current) || 0) >> (Number(value) || 0); break;
-          case '>>>=': value = (Number(current) || 0) >>> (Number(value) || 0); break;
+          case '+=': value = addValues(current, value); break;
+          case '-=': value = toNumberValue(current) - toNumberValue(value); break;
+          case '*=': value = toNumberValue(current) * toNumberValue(value); break;
+          case '/=': value = toNumberValue(current) / toNumberValue(value); break;
+          case '%=': value = toNumberValue(current) % toNumberValue(value); break;
+          case '**=': value = toNumberValue(current) ** toNumberValue(value); break;
+          case '&=': value = toNumberValue(current) & toNumberValue(value); break;
+          case '|=': value = toNumberValue(current) | toNumberValue(value); break;
+          case '^=': value = toNumberValue(current) ^ toNumberValue(value); break;
+          case '<<=': value = toNumberValue(current) << toNumberValue(value); break;
+          case '>>=': value = toNumberValue(current) >> toNumberValue(value); break;
+          case '>>>=': value = toNumberValue(current) >>> toNumberValue(value); break;
           default: break;
         }
         ctx.variables.set(name, value);
@@ -1897,12 +1919,12 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
             const current = useStatics ? obj.__statics[prop] : obj[prop];
             switch (node.operator) {
               case '=': break;
-              case '+=': value = (typeof current === 'number' && typeof value === 'number') ? current + value : String(current ?? '') + String(value ?? ''); break;
-              case '-=': value = (Number(current) || 0) - (Number(value) || 0); break;
-              case '*=': value = (Number(current) || 0) * (Number(value) || 0); break;
-              case '/=': value = (Number(current) || 0) / (Number(value) || 1); break;
-              case '%=': value = (Number(current) || 0) % (Number(value) || 1); break;
-              case '**=': value = Math.pow(Number(current) || 0, Number(value) || 0); break;
+              case '+=': value = addValues(current, value); break;
+              case '-=': value = toNumberValue(current) - toNumberValue(value); break;
+              case '*=': value = toNumberValue(current) * toNumberValue(value); break;
+              case '/=': value = toNumberValue(current) / toNumberValue(value); break;
+              case '%=': value = toNumberValue(current) % toNumberValue(value); break;
+              case '**=': value = toNumberValue(current) ** toNumberValue(value); break;
               default: break;
             }
             // Check for setter
@@ -1929,7 +1951,7 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
           ctx.steps.push({ type: 'console', line: getNodeLine(node), data: { type: 'error', args: [`TypeError: Assignment to constant variable '${name}'.`] } });
           return Number(ctx.variables.get(name)) || 0;
         }
-        let current = Number(ctx.variables.get(name)) || 0;
+        let current = toNumberValue(ctx.variables.get(name));
         const newVal = node.operator === '++' ? current + 1 : current - 1;
         ctx.variables.set(name, newVal);
         return node.prefix ? newVal : current;
@@ -1941,7 +1963,7 @@ function evaluateExpression(node: any, ctx: ExecutionContext): any {
         if (typeof obj === 'object' && obj !== null) {
           // Read from __statics if the property is a static member
           const useStatics = obj.__statics && prop in obj.__statics;
-          const current = Number(useStatics ? obj.__statics[prop] : obj[prop]) || 0;
+          const current = toNumberValue(useStatics ? obj.__statics[prop] : obj[prop]);
           const newVal = node.operator === '++' ? current + 1 : current - 1;
           if (useStatics) {
             obj.__statics[prop] = newVal;
